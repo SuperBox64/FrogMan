@@ -187,6 +187,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         "T": [[CGPoint(x: 20, y: 0), CGPoint(x: 20, y: 100),
                CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)]],
                
+        "V": [[CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 0),
+               CGPoint(x: 20, y: 0), CGPoint(x: 40, y: 100)]],
+        
         " ": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 0)]]  // Empty space with O-width
     ]
     
@@ -268,6 +271,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add this function to handle common setup
     private func setupLevel() {
+        // Get player's current position if they exist
+        let safeZone = CGRect(
+            x: player?.position.x ?? 0 - playerSize.width,
+            y: player?.position.y ?? 0 - playerSize.height,
+            width: playerSize.width * 2,
+            height: playerSize.height * 2
+        )
+        
+        // Clear any existing platforms/obstacles
+        platforms.forEach { $0.removeFromParent() }
+        platforms.removeAll()
+        
+        // Create new platforms, avoiding player's safe zone
+        createPlatformsForLevel(avoidingZone: safeZone)
+        
         // 1. Remove ALL existing nodes except player and score labels
         children.forEach { node in
             if node != player && 
@@ -313,6 +331,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         createBaselineWithDeathZones()
     }
 
+    private func createPlatformsForLevel(avoidingZone: CGRect) {
+        // Create platforms at different heights
+        for height in platformHeights {
+            let platformY = size.height * height
+            var currentX: CGFloat = 0
+            
+            while currentX < size.width {
+                let sectionWidth = size.width * CGFloat.random(in: 0.1...0.2)
+                let platformSection = CGRect(
+                    x: currentX,
+                    y: platformY,
+                    width: sectionWidth,
+                    height: PLATFORM_HEIGHT
+                )
+                
+                // Only create platform if it doesn't intersect with safe zone
+                if !platformSection.intersects(avoidingZone) {
+                    createPlatformSection(from: currentX,
+                                       to: currentX + sectionWidth,
+                                       at: platformY,
+                                       slope: CGFloat.random(in: -PLATFORM_SLOPE...PLATFORM_SLOPE))
+                }
+                
+                currentX += sectionWidth + (size.width * CGFloat.random(in: 0.05...0.1))
+            }
+        }
+    }
+    
     // New function to handle ball replacement with delay
     private func spawnReplacementBall() {
         if isSpawningBall { return }  // Only prevent multiple spawn sequences
@@ -563,19 +609,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 handleJump()
             }
             
-        case 0x7B:  // Left arrow
-            guard gameStarted, let playerBody = player?.physicsBody else { return }
+        case 123:  // Left arrow
             isMovingLeft = true
             isMovingRight = false
-            playerBody.velocity.dx = -MOVE_SPEED
-            playerBody.linearDamping = 0
-            
-        case 0x7C:  // Right arrow
-            guard gameStarted, let playerBody = player?.physicsBody else { return }
+        case 124:  // Right arrow
             isMovingRight = true
             isMovingLeft = false
-            playerBody.velocity.dx = MOVE_SPEED
-            playerBody.linearDamping = 0
             
         default:
             break
@@ -614,6 +653,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
         updateScoreLevelLives()
+        
+        // Remove any delay/pause in movement
+        if isMovingLeft {
+            let newX = player.position.x - MOVE_SPEED * CGFloat(1.0/60.0)
+            player.position.x = max(playerSize.width/2, newX)
+        }
+        
+        if isMovingRight {
+            let newX = player.position.x + MOVE_SPEED * CGFloat(1.0/60.0)
+            player.position.x = min(size.width - playerSize.width/2, newX)
+        }
         
         // Add ring rotation update and check ALL balls every frame
         for ball in basketballs {
@@ -750,21 +800,24 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // Decrease life
             lives -= 1
             
-            // Create death animation BEFORE removing player
+            // Update lives display immediately
+            updateScoreLevelLives()
+            
+            // Create death animation
             createDeathAnimation()
             
             // Wait for death animation to complete before respawning
-            let respawnDelay = SKAction.wait(forDuration: 0.7)  // Give animation time to finish
+            let respawnDelay = SKAction.wait(forDuration: 0.7)
             let respawnAction = SKAction.run { [weak self] in
-                self?.setupPlayer()  // Respawn player at starting position
+                // Check for game over
+                if self?.lives ?? 0 <= 0 {
+                    self?.gameOver()
+                } else {
+                    self?.setupPlayer()  // Only respawn if still have lives
+                }
             }
             
             run(SKAction.sequence([respawnDelay, respawnAction]))
-            
-            // Check for game over
-            if lives <= 0 {
-                gameOver()
-            }
         }
         
         // Check for ground contact to enable jumping
@@ -816,15 +869,40 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     private func gameOver() {
-        let gameOverLabel = SKLabelNode(fontNamed: "Courier")
-        gameOverLabel.text = "GAME OVER - SPACE TO RESTART"
-        gameOverLabel.name = "gameOverLabel"
-        gameOverLabel.fontSize = 48
-        gameOverLabel.fontColor = .red
-        gameOverLabel.position = CGPoint(x: size.width/2, y: size.height/2)
-        addChild(gameOverLabel)
+        // Clear the scene except for score display
+        children.forEach { node in
+            if node != scoreLabel && node != livesLabel && node != levelLabel {
+                node.removeFromParent()
+            }
+        }
         
-        isPaused = true
+        // Create GAME OVER text
+        let gameOverText = createVectorText("GAME OVER", 
+                                          position: CGPoint(x: frame.midX, y: frame.midY + 50),
+                                          color: .red,
+                                          scale: 1.0)
+        
+        // Calculate actual width and center it
+        let gameOverX = frame.midX - (gameOverText.calculateAccumulatedFrame().width / 2)
+        gameOverText.position = CGPoint(x: gameOverX, y: frame.midY + 50)
+        addChild(gameOverText)
+        
+        // Create SPACE TO START text
+        let startText = createVectorText("SPACE TO START",
+                                       position: CGPoint(x: frame.midX, y: frame.midY - 50),
+                                       color: .white,
+                                       scale: 0.5)
+        
+        // Calculate actual width and center it
+        let startX = frame.midX - (startText.calculateAccumulatedFrame().width / 2)
+        startText.position = CGPoint(x: startX, y: frame.midY - 50)
+        addChild(startText)
+        
+        // Reset game state
+        gameStarted = false
+        lives = 5
+        score = 0
+        currentLevel = 1
     }
     
     // Add helper function to reset limb positions
@@ -1144,7 +1222,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                                             PhysicsCategory.platform | PhysicsCategory.baseline
         
         // Position player higher above baseline
-        player.position = CGPoint(x: size.width * 0.2, 
+        player.position = CGPoint(x: size.width * 0.05, 
                                 y: BASELINE_HEIGHT + physicsSize.height)  // Added full height instead of half
         addChild(player)
     }
@@ -1303,7 +1381,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 line.path = path
                 line.strokeColor = .green
                 line.lineWidth = 2
-                line.position = CGPoint(x: offsetX, y: 0)
                 digitNode.addChild(line)
             }
             
@@ -1563,6 +1640,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let baselinePath = CGMutablePath()
         baselinePath.move(to: CGPoint(x: 0, y: 1))  // 1px up from bottom
         baselinePath.addLine(to: CGPoint(x: size.width, y: 1))  // 1px up from bottom
+        
         baseline.path = baselinePath
         baseline.strokeColor = .green
         baseline.lineWidth = BASELINE_LINE_WIDTH
