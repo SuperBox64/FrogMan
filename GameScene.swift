@@ -190,6 +190,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         " ": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 0)]]  // Empty space with O-width
     ]
     
+    // Add these properties at the top of the class
+    private let BASELINE_LINE_WIDTH: CGFloat = 2.0
+    private let DEATH_ZONE_WIDTH: CGFloat = 50.0
+    private let DEATH_ZONE_SPACING: CGFloat = 25.0  // 25 pixels between red zones
+    
     override func sceneDidLoad() {
         super.sceneDidLoad()
         
@@ -288,7 +293,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if player == nil {
             setupPlayer()
         } else {
-        player.position = CGPoint(x: size.width * 0.2, y: playerSize.height/2)
+        player.position = CGPoint(x: size.width * 0.05, y: playerSize.height/2)
         player.physicsBody?.velocity = .zero
         }
         
@@ -303,6 +308,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if levelLabel == nil {
             setupScore() // Create labels if they don't exist
         }
+        
+        // Add baseline with death zones
+        createBaselineWithDeathZones()
     }
 
     // New function to handle ball replacement with delay
@@ -1546,6 +1554,46 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         textNode.position = position
         return textNode
+    }
+    
+    // Add this function to create baseline and death zones
+    private func createBaselineWithDeathZones() {
+        // Create green baseline 1px up from bottom
+        let baseline = SKShapeNode()
+        let baselinePath = CGMutablePath()
+        baselinePath.move(to: CGPoint(x: 0, y: 1))  // 1px up from bottom
+        baselinePath.addLine(to: CGPoint(x: size.width, y: 1))  // 1px up from bottom
+        baseline.path = baselinePath
+        baseline.strokeColor = .green
+        baseline.lineWidth = BASELINE_LINE_WIDTH
+        addChild(baseline)
+        
+        // Create 3 evenly spaced red death zones
+        let totalWidth = size.width
+        let usableWidth = totalWidth - (DEATH_ZONE_WIDTH * 3)
+        let spacing = usableWidth / 4
+        
+        for i in 0..<3 {
+            let deathZone = SKShapeNode()
+            let deathZonePath = CGMutablePath()
+            
+            let xPosition = spacing + (CGFloat(i) * (DEATH_ZONE_WIDTH + spacing))
+            deathZonePath.move(to: CGPoint(x: xPosition, y: 1))  // 1px up from bottom
+            deathZonePath.addLine(to: CGPoint(x: xPosition + DEATH_ZONE_WIDTH, y: 1))  // 1px up from bottom
+            
+            deathZone.path = deathZonePath
+            deathZone.strokeColor = .red
+            deathZone.lineWidth = BASELINE_LINE_WIDTH
+            
+            // Add physics body for death zone
+            deathZone.physicsBody = SKPhysicsBody(edgeFrom: CGPoint(x: xPosition, y: 1),
+                                                 to: CGPoint(x: xPosition + DEATH_ZONE_WIDTH, y: 1))
+            deathZone.physicsBody?.categoryBitMask = PhysicsCategory.obstacle
+            deathZone.physicsBody?.contactTestBitMask = PhysicsCategory.player
+            deathZone.physicsBody?.collisionBitMask = 0
+            
+            addChild(deathZone)
+        }
     }
 }
 
