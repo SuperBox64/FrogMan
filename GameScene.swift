@@ -85,7 +85,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var isSpawningBall = false
     
     // Constants for positioning
-    private let BASELINE_HEIGHT: CGFloat = 5  // Changed from 20 to 5 to be closer to bottom
+    private let BASELINE_HEIGHT: CGFloat = 20  // Increased from 5 to 20
     private let PLAYER_START_HEIGHT: CGFloat = 40  // Height above baseline
     
     // Add property to store spawn points
@@ -126,6 +126,70 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // Add property at top of class
     private var gameStarted = false
     
+    // At top of class with other properties
+    private let VECTOR_LETTERS: [String: [[CGPoint]]] = [
+        "F": [[CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 0),
+               CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)]],
+        
+        "R": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 30, y: 100),
+               CGPoint(x: 30, y: 100), CGPoint(x: 40, y: 80),
+               CGPoint(x: 40, y: 80), CGPoint(x: 40, y: 60),
+               CGPoint(x: 40, y: 60), CGPoint(x: 30, y: 50),
+               CGPoint(x: 30, y: 50), CGPoint(x: 0, y: 50),
+               CGPoint(x: 15, y: 50), CGPoint(x: 40, y: 0)]],
+        
+        "O": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0),
+               CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)]],
+        
+        "G": [[CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 0),
+               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 40, y: 60), CGPoint(x: 20, y: 60),
+               CGPoint(x: 40, y: 60), CGPoint(x: 40, y: 0)]],
+        
+        "M": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 50),
+               CGPoint(x: 20, y: 50), CGPoint(x: 40, y: 100),
+               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0)]],
+        
+        "A": [[CGPoint(x: 0, y: 0), CGPoint(x: 20, y: 100),
+               CGPoint(x: 20, y: 100), CGPoint(x: 40, y: 0),
+               CGPoint(x: 10, y: 50), CGPoint(x: 30, y: 50)]],
+        
+        "N": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 0),
+               CGPoint(x: 40, y: 0), CGPoint(x: 40, y: 100)]],
+               
+        "P": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 50),
+               CGPoint(x: 40, y: 50), CGPoint(x: 0, y: 50)]],
+               
+        "S": [[CGPoint(x: 40, y: 100), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 50),
+               CGPoint(x: 0, y: 50), CGPoint(x: 40, y: 50),
+               CGPoint(x: 40, y: 50), CGPoint(x: 40, y: 0),
+               CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)]],
+               
+        "C": [[CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
+               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)]],
+               
+        "E": [[CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
+               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)]],
+               
+        "T": [[CGPoint(x: 20, y: 0), CGPoint(x: 20, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)]],
+               
+        " ": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 0)]]  // Empty space with O-width
+    ]
+    
     override func sceneDidLoad() {
         super.sceneDidLoad()
         
@@ -153,158 +217,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     private func showTitleScreen() {
-        let titleNode = SKNode()
+        // Create FROGMAN text node first
+        let titleNode = createVectorText("FROGMAN", 
+                                       position: .zero,  // Temporary position
+                                       color: .green,
+                                       scale: 1.0)
         
-        // FROGMAN - Simple, clean vectors in green
-        let frogmanPoints: [[CGPoint]] = [
-            // F
-            [CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-             CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 0),
-             CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)],
-            
-            // R
-            [CGPoint(x: 60, y: 0), CGPoint(x: 60, y: 100),
-             CGPoint(x: 60, y: 100), CGPoint(x: 90, y: 100),
-             CGPoint(x: 90, y: 100), CGPoint(x: 100, y: 80),
-             CGPoint(x: 100, y: 80), CGPoint(x: 100, y: 60),
-             CGPoint(x: 100, y: 60), CGPoint(x: 90, y: 50),
-             CGPoint(x: 90, y: 50), CGPoint(x: 60, y: 50),
-             CGPoint(x: 75, y: 50), CGPoint(x: 100, y: 0)],
-             
-            // O
-            [CGPoint(x: 120, y: 0), CGPoint(x: 120, y: 100),
-             CGPoint(x: 120, y: 100), CGPoint(x: 160, y: 100),
-             CGPoint(x: 160, y: 100), CGPoint(x: 160, y: 0),
-             CGPoint(x: 160, y: 0), CGPoint(x: 120, y: 0)],
-             
-            // G
-            [CGPoint(x: 180, y: 0), CGPoint(x: 220, y: 0),
-             CGPoint(x: 180, y: 0), CGPoint(x: 180, y: 100),
-             CGPoint(x: 180, y: 100), CGPoint(x: 220, y: 100),
-             CGPoint(x: 220, y: 60), CGPoint(x: 200, y: 60),
-             CGPoint(x: 220, y: 60), CGPoint(x: 220, y: 0)],
-             
-            // M
-            [CGPoint(x: 240, y: 0), CGPoint(x: 240, y: 100),
-             CGPoint(x: 240, y: 100), CGPoint(x: 260, y: 50),
-             CGPoint(x: 260, y: 50), CGPoint(x: 280, y: 100),
-             CGPoint(x: 280, y: 100), CGPoint(x: 280, y: 0)],
-             
-            // A
-            [CGPoint(x: 300, y: 0), CGPoint(x: 320, y: 100),
-             CGPoint(x: 320, y: 100), CGPoint(x: 340, y: 0),
-             CGPoint(x: 310, y: 50), CGPoint(x: 330, y: 50)],
-             
-            // N
-            [CGPoint(x: 360, y: 0), CGPoint(x: 360, y: 100),
-             CGPoint(x: 360, y: 100), CGPoint(x: 400, y: 0),
-             CGPoint(x: 400, y: 0), CGPoint(x: 400, y: 100)]
-        ]
-        
-        // Draw FROGMAN in green
-        for letterSegments in frogmanPoints {
-            for i in stride(from: 0, to: letterSegments.count, by: 2) {
-                let line = SKShapeNode()
-                let path = CGMutablePath()
-                path.move(to: letterSegments[i])
-                path.addLine(to: letterSegments[i + 1])
-                line.path = path
-                line.strokeColor = .green
-                line.lineWidth = 2
-                titleNode.addChild(line)
-            }
-        }
-        
-        // "SPACE BAR TO START" - Simple vectors in white, half size
-        let spaceToStartPoints: [[CGPoint]] = [
-            // S
-            [CGPoint(x: 25, y: -125), CGPoint(x: 45, y: -125),
-             CGPoint(x: 45, y: -125), CGPoint(x: 45, y: -100),
-             CGPoint(x: 45, y: -100), CGPoint(x: 25, y: -100),
-             CGPoint(x: 25, y: -100), CGPoint(x: 25, y: -75),
-             CGPoint(x: 25, y: -75), CGPoint(x: 45, y: -75)],
-             
-            // P
-            [CGPoint(x: 55, y: -125), CGPoint(x: 55, y: -75),
-             CGPoint(x: 55, y: -75), CGPoint(x: 75, y: -75),
-             CGPoint(x: 75, y: -75), CGPoint(x: 75, y: -100),
-             CGPoint(x: 75, y: -100), CGPoint(x: 55, y: -100)],
-             
-            // A (fixed)
-            [CGPoint(x: 85, y: -125), CGPoint(x: 95, y: -75),
-             CGPoint(x: 95, y: -75), CGPoint(x: 105, y: -125),
-             CGPoint(x: 90, y: -100), CGPoint(x: 100, y: -100)],
-             
-            // C
-            [CGPoint(x: 115, y: -75), CGPoint(x: 115, y: -125),
-             CGPoint(x: 115, y: -125), CGPoint(x: 135, y: -125),
-             CGPoint(x: 115, y: -75), CGPoint(x: 135, y: -75)],
-             
-            // E
-            [CGPoint(x: 145, y: -75), CGPoint(x: 145, y: -125),
-             CGPoint(x: 145, y: -125), CGPoint(x: 165, y: -125),
-             CGPoint(x: 145, y: -100), CGPoint(x: 160, y: -100),
-             CGPoint(x: 145, y: -75), CGPoint(x: 165, y: -75)],
-             
-            // Space (gap)
-             
-            // T
-            [CGPoint(x: 185, y: -75), CGPoint(x: 205, y: -75),
-             CGPoint(x: 195, y: -75), CGPoint(x: 195, y: -125)],
-             
-            // O
-            [CGPoint(x: 215, y: -75), CGPoint(x: 215, y: -125),
-             CGPoint(x: 215, y: -125), CGPoint(x: 235, y: -125),
-             CGPoint(x: 235, y: -125), CGPoint(x: 235, y: -75),
-             CGPoint(x: 235, y: -75), CGPoint(x: 215, y: -75)],
-             
-            // Space (gap)
-             
-            // S
-            [CGPoint(x: 255, y: -125), CGPoint(x: 275, y: -125),
-             CGPoint(x: 275, y: -125), CGPoint(x: 275, y: -100),
-             CGPoint(x: 275, y: -100), CGPoint(x: 255, y: -100),
-             CGPoint(x: 255, y: -100), CGPoint(x: 255, y: -75),
-             CGPoint(x: 255, y: -75), CGPoint(x: 275, y: -75)],
-             
-            // T
-            [CGPoint(x: 285, y: -75), CGPoint(x: 305, y: -75),
-             CGPoint(x: 295, y: -75), CGPoint(x: 295, y: -125)],
-             
-            // A (fixed)
-            [CGPoint(x: 315, y: -125), CGPoint(x: 325, y: -75),
-             CGPoint(x: 325, y: -75), CGPoint(x: 335, y: -125),
-             CGPoint(x: 320, y: -100), CGPoint(x: 330, y: -100)],
-             
-            // R
-            [CGPoint(x: 345, y: -75), CGPoint(x: 345, y: -125),
-             CGPoint(x: 345, y: -75), CGPoint(x: 365, y: -75),
-             CGPoint(x: 365, y: -75), CGPoint(x: 365, y: -100),
-             CGPoint(x: 365, y: -100), CGPoint(x: 345, y: -100),
-             CGPoint(x: 355, y: -100), CGPoint(x: 365, y: -125)],
-             
-            // T
-            [CGPoint(x: 375, y: -75), CGPoint(x: 395, y: -75),
-             CGPoint(x: 385, y: -75), CGPoint(x: 385, y: -125)]
-        ]
-        
-        // Draw "SPACE BAR TO START" in white
-        for letterSegments in spaceToStartPoints {
-            for i in stride(from: 0, to: letterSegments.count, by: 2) {
-                let line = SKShapeNode()
-                let path = CGMutablePath()
-                path.move(to: letterSegments[i])
-                path.addLine(to: letterSegments[i + 1])
-                line.path = path
-                line.strokeColor = .white
-                line.lineWidth = 2
-                titleNode.addChild(line)
-            }
-        }
-        
-        titleNode.position = CGPoint(x: frame.midX - 200, y: frame.midY)
+        // Center horizontally using the node's actual width
+        let frogmanX = frame.midX - (titleNode.calculateAccumulatedFrame().width / 2)
+        titleNode.position = CGPoint(x: frogmanX, y: frame.midY + 50)
         titleNode.name = "titleScreen"
         addChild(titleNode)
+        
+        // Create SPACE TO START text node
+        let startText = createVectorText("SPACE TO START",
+                                       position: .zero,  // Temporary position
+                                       color: .white,
+                                       scale: 0.5)
+        
+        // Center horizontally using the node's actual width
+        let spaceToStartX = frame.midX - (startText.calculateAccumulatedFrame().width / 2)
+        startText.position = CGPoint(x: spaceToStartX, y: frame.midY - 50)
+        startText.name = "titleScreen"
+        addChild(startText)
     }
     
     private func startGame() {
@@ -452,10 +387,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Create 4 platforms with heights reduced by 5 pixels each (~1% of screen height)
         let platformHeights: [CGFloat] = [
-            0.12,  // Bottom platform
-            0.34,  // Second platform
-            0.56,  // Third platform
-            0.78   // Top platform
+            0.2,  // Bottom platform
+            0.4,  // Second platform
+            0.6,  // Third platform
+            0.8   // Top platform
         ]
         
         // Create array of required hole counts to ensure variety
@@ -701,6 +636,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 }
             }
         }
+        
+        // Check if player exists and is descending
+        if let playerNode = self.player,  // Check if player exists first
+           let velocity = playerNode.physicsBody?.velocity.dy {
+            if velocity < 0 { // Negative velocity means descending
+                // Retract legs if they exist
+                if let leftLeg = playerNode.childNode(withName: "leftLeg"),
+                   let rightLeg = playerNode.childNode(withName: "rightLeg") {
+                    
+                    // Only animate if legs aren't already retracting
+                    if leftLeg.hasActions() == false {
+                        // Retract animation
+                        let retractAction = SKAction.group([
+                            SKAction.scale(to: 0.5, duration: 0.2),
+                            SKAction.rotate(toAngle: 0, duration: 0.2)
+                        ])
+                        
+                        leftLeg.run(retractAction)
+                        rightLeg.run(retractAction)
+                    }
+                }
+            }
+        }
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
@@ -787,10 +745,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // Create death animation BEFORE removing player
             createDeathAnimation()
             
-            // Wait a short moment before respawning
-            let respawnDelay = SKAction.wait(forDuration: 1.0)
-            let respawnAction = SKAction.run {
-                self.setupPlayer()  // Respawn player
+            // Wait for death animation to complete before respawning
+            let respawnDelay = SKAction.wait(forDuration: 0.7)  // Give animation time to finish
+            let respawnAction = SKAction.run { [weak self] in
+                self?.setupPlayer()  // Respawn player at starting position
             }
             
             run(SKAction.sequence([respawnDelay, respawnAction]))
@@ -808,23 +766,30 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("Ground contact detected")
             canJump = true
             
-            // Handle landing animation - use self.player instead of local player variable
-            if let leftLeg = self.player.childNode(withName: "leftLeg"),
-               let rightLeg = self.player.childNode(withName: "rightLeg") {
+            // Get the player node from collision
+            let playerNode = [contact.bodyA.node, contact.bodyB.node].first { node in
+                node?.physicsBody?.categoryBitMask == PhysicsCategory.player
+            }
+            
+            // Handle landing animation
+            if let player = playerNode,
+               let leftLeg = player?.childNode(withName: "leftLeg"),
+               let rightLeg = player?.childNode(withName: "rightLeg") {
                 
                 // Kill any existing animations
                 leftLeg.removeAllActions()
                 rightLeg.removeAllActions()
                 
-                // Simple landing sequence with short legs
+                // Simple landing sequence with shorter legs (0.5 scale)
                 let landSequence = SKAction.sequence([
-                    // 1. Quick spread with short legs
+                    // 1. Quick spread with short legs (0.5 scale)
                     SKAction.run {
                         // Scale to half size for landing
                         leftLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
                         rightLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
-                        leftLeg.run(SKAction.rotate(toAngle: -.pi/3, duration: 0.1))
-                        rightLeg.run(SKAction.rotate(toAngle: .pi/3, duration: 0.1))
+                        // Spread legs slightly
+                        leftLeg.run(SKAction.rotate(toAngle: -.pi/4, duration: 0.1))
+                        rightLeg.run(SKAction.rotate(toAngle: .pi/4, duration: 0.1))
                     },
                     
                     SKAction.wait(forDuration: 0.1),
@@ -1046,6 +1011,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 ))
             }
             
+            // Create and extend legs
+            createLShapedLeg(pixelSize: playerSize.width, isLeft: true)
+            createLShapedLeg(pixelSize: playerSize.width, isLeft: false)
+            
+            // Reset leg size and rotation
+            if let leftLeg = player.childNode(withName: "leftLeg"),
+               let rightLeg = player.childNode(withName: "rightLeg") {
+                leftLeg.setScale(1.0)
+                rightLeg.setScale(1.0)
+                leftLeg.zRotation = 0
+                rightLeg.zRotation = 0
+            }
+            
             canJump = false
         }
     }
@@ -1157,8 +1135,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody?.contactTestBitMask = PhysicsCategory.obstacle | PhysicsCategory.ground | 
                                             PhysicsCategory.platform | PhysicsCategory.baseline
         
-        // Position at bottom of screen
-        player.position = CGPoint(x: size.width * 0.2, y: BASELINE_HEIGHT + physicsSize.height/2)
+        // Position player higher above baseline
+        player.position = CGPoint(x: size.width * 0.2, 
+                                y: BASELINE_HEIGHT + physicsSize.height)  // Added full height instead of half
         addChild(player)
     }
     
@@ -1523,6 +1502,50 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Remove the original player node
         player.removeFromParent()
+    }
+    
+    // Add function to create vector text
+    private func createVectorText(_ text: String, position: CGPoint, color: NSColor, scale: CGFloat = 1.0) -> SKNode {
+        let textNode = SKNode()
+        var offsetX: CGFloat = 0
+        
+        for char in text.uppercased() {
+            if let letterPoints = VECTOR_LETTERS[String(char)] {
+                let letterNode = SKNode()
+                
+                for segment in letterPoints {
+                    for i in stride(from: 0, to: segment.count, by: 2) {
+                        let line = SKShapeNode()
+                        let path = CGMutablePath()
+                        
+                        let startPoint = CGPoint(
+                            x: segment[i].x * scale,
+                            y: segment[i].y * scale
+                        )
+                        let endPoint = CGPoint(
+                            x: segment[i + 1].x * scale,
+                            y: segment[i + 1].y * scale
+                        )
+                        
+                        path.move(to: startPoint)
+                        path.addLine(to: endPoint)
+                        
+                        line.path = path
+                        line.strokeColor = color
+                        line.lineWidth = 2
+                        letterNode.addChild(line)
+                    }
+                }
+                
+                letterNode.position = CGPoint(x: offsetX, y: 0)
+                textNode.addChild(letterNode)
+                
+                offsetX += 50 * scale  // Space between letters (matches original O width)
+            }
+        }
+        
+        textNode.position = position
+        return textNode
     }
 }
 
