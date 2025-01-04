@@ -198,6 +198,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let DEATH_ZONE_WIDTH: CGFloat = 50.0
     private let DEATH_ZONE_SPACING: CGFloat = 25.0  // 25 pixels between red zones
     
+    // Add at top of class
+    private let SPAWN_COOLDOWN_TIME: TimeInterval = 2.0  // Time before location can be reused
+    private var recentSpawnLocations: [(point: CGPoint, timestamp: TimeInterval)] = []
+    
     override func sceneDidLoad() {
         super.sceneDidLoad()
         
@@ -358,7 +362,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
-    
+
     // New function to handle ball replacement with delay
     private func spawnReplacementBall() {
         if isSpawningBall { return }  // Only prevent multiple spawn sequences
@@ -388,10 +392,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let spawnBallAction = SKAction.sequence([
                 SKAction.wait(forDuration: 3.0),
                 SKAction.run {
-                    let newBasketball = self.createNewBasketball(platformHeights: self.platformHeights)
-                    newBasketball.position = CGPoint(x: randomX, y: self.size.height * 0.9)
+                    // Create new ball with spawn location check
+                    if let spawnPoint = self.getAvailableSpawnPoint() {
+                        let newBasketball = self.createBasketball()
+                        newBasketball.position = CGPoint(x: spawnPoint.x, y: spawnPoint.y)
                     self.addChild(newBasketball)
                     self.basketballs.append(newBasketball)
+                        
+                        // Record spawn location
+                        self.recentSpawnLocations.append((
+                            point: spawnPoint,
+                            timestamp: Date().timeIntervalSince1970
+                        ))
+                    }
                     spawnLine.removeFromParent()  // Remove the indicator after ball spawns
                 }
             ])
@@ -404,6 +417,37 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         self.run(SKAction.sequence([waitAction, spawnAction]))
+    }
+    
+    // Helper function to get spawn point
+    private func getAvailableSpawnPoint() -> CGPoint? {
+        // Clean up old spawn locations
+        let currentTime = Date().timeIntervalSince1970
+        recentSpawnLocations = recentSpawnLocations.filter { 
+            currentTime - $0.timestamp < SPAWN_COOLDOWN_TIME 
+        }
+        
+        // Try to find an available spawn point
+        let randomX = CGFloat.random(in: size.width * 0.2...size.width * 0.8)
+        let spawnY = size.height * 0.9
+        let potentialPoint = CGPoint(x: randomX, y: spawnY)
+        
+        // Check if this location was recently used
+        let isRecentlyUsed = recentSpawnLocations.contains { 
+            let distance = hypot($0.point.x - potentialPoint.x, 
+                               $0.point.y - potentialPoint.y)
+            return distance < 100  // Increased to 100 pixels minimum distance
+        }
+        
+        // Also check for existing spawn indicators
+        let hasNearbyIndicator = children.contains { node in
+            guard node.name == "spawnLine" else { return false }
+            let distance = hypot(node.position.x - potentialPoint.x,
+                               node.position.y - potentialPoint.y)
+            return distance < 100  // 100 pixels from other indicators
+        }
+        
+        return (isRecentlyUsed || hasNearbyIndicator) ? nil : potentialPoint
     }
     
     // Helper to create pixel-perfect blocks
@@ -741,13 +785,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 // Check if platform hasn't been scored yet
                 if platform.userData?["scored"] as? Bool != true {
                     // Top collision - turn green
-                    platform.strokeColor = .green
+                            platform.strokeColor = .green
                     platform.fillColor = .clear
                     platform.lineWidth = 2
-                    
+                
                     // Add score and show popup only if not previously scored
                     score += 10
-                    showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
+                            showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
                     
                     // Mark platform as scored
                     platform.userData = NSMutableDictionary()
@@ -756,20 +800,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     // Check if level is complete
                     checkLevelCompletion()
                 }
-            } else if platform.strokeColor == UNIFORM_GOLD {
+                        } else if platform.strokeColor == UNIFORM_GOLD {
                 // Side collision with gold platform - turn orange first
-                platform.strokeColor = .orange
+                            platform.strokeColor = .orange
                 platform.fillColor = .clear
-                platform.lineWidth = 2
-                
+                            platform.lineWidth = 2
+                            
                 // Award 5 points for turning platform orange
-                score += 5
+                            score += 5
                 showScorePopup(amount: 5, at: contact.contactPoint, color: .orange)
-                
-                // Check for balls on this platform
+                            
+                            // Check for balls on this platform
                 var ballsToRemove: [SKShapeNode] = []
-                for ball in basketballs {
-                    if let ballPhysics = ball.physicsBody,
+                            for ball in basketballs {
+                                if let ballPhysics = ball.physicsBody,
                        let platformPhysics = platform.physicsBody {
                         let contactBodies = ballPhysics.allContactedBodies()
                         if contactBodies.contains(platformPhysics) {
@@ -787,10 +831,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 
                 // Remove all affected balls
                 for ball in ballsToRemove {
-                    ball.removeFromParent()
-                    if let index = basketballs.firstIndex(of: ball) {
-                        basketballs.remove(at: index)
-                    }
+                                    ball.removeFromParent()
+                                    if let index = basketballs.firstIndex(of: ball) {
+                                        basketballs.remove(at: index)
+                                    }
                 }
             }
         }
@@ -844,7 +888,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 // Simple landing sequence with shorter legs (0.5 scale)
                 let landSequence = SKAction.sequence([
                     // 1. Quick spread with short legs (0.5 scale)
-                    SKAction.run {
+                        SKAction.run {
                         // Scale to half size for landing
                         leftLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
                         rightLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
@@ -869,12 +913,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     private func gameOver() {
-        // Clear the scene except for score display
+        // Remove all existing balls and their spawn indicators
         children.forEach { node in
-            if node != scoreLabel && node != livesLabel && node != levelLabel {
+            if node.name == "ball" || node.name == "spawnLine" {
                 node.removeFromParent()
             }
         }
+        basketballs.removeAll()
         
         // Create GAME OVER text
         let gameOverText = createVectorText("GAME OVER", 
@@ -885,6 +930,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Calculate actual width and center it
         let gameOverX = frame.midX - (gameOverText.calculateAccumulatedFrame().width / 2)
         gameOverText.position = CGPoint(x: gameOverX, y: frame.midY + 50)
+        gameOverText.name = "gameOverScreen"
         addChild(gameOverText)
         
         // Create SPACE TO START text
@@ -896,9 +942,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Calculate actual width and center it
         let startX = frame.midX - (startText.calculateAccumulatedFrame().width / 2)
         startText.position = CGPoint(x: startX, y: frame.midY - 50)
+        startText.name = "gameOverScreen"
         addChild(startText)
         
-        // Reset game state
+        // Reset game state but keep scene
         gameStarted = false
         lives = 5
         score = 0
@@ -924,7 +971,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     // Add new function to create a single basketball
-    private func createNewBasketball(platformHeights: [CGFloat]) -> SKShapeNode {
+    private func createBasketball() -> SKShapeNode {
+        // Don't create balls if game is over
+        guard gameStarted else { return SKShapeNode() }  // Return empty node if game over
+        
         // Create the ball first
         let ball = SKShapeNode(circleOfRadius: 12)
         ball.fillColor = .clear  // No fill
@@ -954,10 +1004,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let ring = SKShapeNode(path: {
             let path = CGMutablePath()
             path.addArc(center: CGPoint.zero,
-                        radius: 55,
-                        startAngle: 0,
-                        endAngle: 2 * .pi,
-                        clockwise: true)
+                       radius: 55,
+                       startAngle: 0,
+                       endAngle: 2 * .pi,
+                       clockwise: true)
             return path
         }())
         ring.strokeColor = .white
@@ -993,6 +1043,49 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ball.userData = ["ringTouched": false]
         
         return ball
+    }
+    
+    // Add new function to create a single basketball
+    private func createNewBasketball(platformHeights: [CGFloat]) {
+        // Clean up old spawn locations first
+        let currentTime = Date().timeIntervalSince1970
+        recentSpawnLocations = recentSpawnLocations.filter { 
+            currentTime - $0.timestamp < SPAWN_COOLDOWN_TIME 
+        }
+        
+        // Get all possible spawn points
+        var availableSpawnPoints: [(x: CGFloat, y: CGFloat)] = []
+        
+        for height in platformHeights {
+            let spawnY = size.height * height + 50  // Above platform
+            let spawnX = CGFloat.random(in: size.width * 0.2...size.width * 0.8)
+            let potentialPoint = CGPoint(x: spawnX, y: spawnY)
+            
+            // Check if this location was recently used
+            let isRecentlyUsed = recentSpawnLocations.contains { 
+                let distance = hypot($0.point.x - potentialPoint.x, 
+                                   $0.point.y - potentialPoint.y)
+                return distance < 50  // Minimum distance between spawn points
+            }
+            
+            if !isRecentlyUsed {
+                availableSpawnPoints.append((spawnX, spawnY))
+            }
+        }
+        
+        // If we have available points, spawn a ball
+        if let spawnPoint = availableSpawnPoints.randomElement() {
+            let ball = createBasketball()
+            ball.position = CGPoint(x: spawnPoint.x, y: spawnPoint.y)
+            addChild(ball)
+            basketballs.append(ball)
+            
+            // Record this spawn location
+            recentSpawnLocations.append((
+                point: CGPoint(x: spawnPoint.x, y: spawnPoint.y),
+                timestamp: currentTime
+            ))
+        }
     }
     
     // Add restart function
@@ -1054,7 +1147,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             if leftLeg.parent == nil { player.addChild(leftLeg) }
             if rightLeg.parent == nil { player.addChild(rightLeg) }
-            
+        
             // Simple vector-style jump animation
             let jumpSequence = SKAction.sequence([
                 // 1. Start with short legs
@@ -1219,7 +1312,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody?.categoryBitMask = PhysicsCategory.player
         player.physicsBody?.collisionBitMask = PhysicsCategory.platform | PhysicsCategory.baseline | PhysicsCategory.ground
         player.physicsBody?.contactTestBitMask = PhysicsCategory.obstacle | PhysicsCategory.ground | 
-                                            PhysicsCategory.platform | PhysicsCategory.baseline
+                                                PhysicsCategory.platform | PhysicsCategory.baseline
         
         // Position player higher above baseline
         player.position = CGPoint(x: size.width * 0.05, 
