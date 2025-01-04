@@ -387,7 +387,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let randomX = CGFloat.random(in: size.width * 0.1...size.width * 0.9)
             
             // Create spawn indicator line first
-            let spawnLine = SKShapeNode(rectOf: CGSize(width: 10, height: 20))
+            let spawnLine = SKShapeNode(rectOf: CGSize(width: 20, height: 10))
             spawnLine.position = CGPoint(x: randomX, y: self.size.height * 0.9)
             spawnLine.fillColor = .clear
             spawnLine.strokeColor = .red
@@ -784,11 +784,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // Decrease life
             lives -= 1
             
-            // Remove player from the field
-            self.player.removeFromParent()
+            // Create death animation BEFORE removing player
+            createDeathAnimation()
             
-            // Respawn player at the starting position
-            setupPlayer()
+            // Wait a short moment before respawning
+            let respawnDelay = SKAction.wait(forDuration: 1.0)
+            let respawnAction = SKAction.run {
+                self.setupPlayer()  // Respawn player
+            }
+            
+            run(SKAction.sequence([respawnDelay, respawnAction]))
             
             // Check for game over
             if lives <= 0 {
@@ -1423,6 +1428,101 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             startNextLevel()
             setupLevel()  // Setup next level
         }
+    }
+    
+    private func createDeathAnimation() {
+        // Store all the lines that make up the frog's head
+        var headLines: [SKShapeNode] = []
+        
+        // Get head outline points
+        let headWidth: CGFloat = 25
+        let headHeight: CGFloat = 35
+        
+        // Create octagonal head points
+        let points: [CGPoint] = [
+            CGPoint(x: -headWidth/2, y: -headHeight/4),      // Left middle
+            CGPoint(x: -headWidth/2, y: headHeight/4),       // Left upper middle
+            CGPoint(x: -headWidth/4, y: headHeight/2),       // Left upper corner
+            CGPoint(x: headWidth/4, y: headHeight/2),        // Right upper corner
+            CGPoint(x: headWidth/2, y: headHeight/4),        // Right upper middle
+            CGPoint(x: headWidth/2, y: -headHeight/4),       // Right middle
+            CGPoint(x: headWidth/4, y: -headHeight/2),       // Right lower corner
+            CGPoint(x: -headWidth/4, y: -headHeight/2)       // Left lower corner
+        ]
+        
+        // Create individual lines for each segment
+        for i in 0..<points.count {
+            let line = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: points[i])
+            path.addLine(to: points[(i + 1) % points.count])
+            line.path = path
+            line.strokeColor = .green
+            line.lineWidth = 2
+            line.position = player.position
+            addChild(line)
+            headLines.append(line)
+        }
+        
+        // Create lines for eyes and smile
+        let eyeSize: CGFloat = 8
+        let eyeY = headHeight/6
+        
+        // Left eye
+        let leftEye = SKShapeNode(circleOfRadius: eyeSize/2)
+        leftEye.strokeColor = .white
+        leftEye.lineWidth = 2
+        leftEye.position = CGPoint(x: player.position.x - headWidth/4, y: player.position.y + eyeY)
+        addChild(leftEye)
+        headLines.append(leftEye)
+        
+        // Right eye
+        let rightEye = SKShapeNode(circleOfRadius: eyeSize/2)
+        rightEye.strokeColor = .white
+        rightEye.lineWidth = 2
+        rightEye.position = CGPoint(x: player.position.x + headWidth/4, y: player.position.y + eyeY)
+        addChild(rightEye)
+        headLines.append(rightEye)
+        
+        // Smile
+        let smile = SKShapeNode()
+        let smilePath = CGMutablePath()
+        let mouthWidth: CGFloat = headWidth/2
+        let mouthY = -headHeight/6
+        smilePath.move(to: CGPoint(x: -mouthWidth/2, y: mouthY))
+        smilePath.addQuadCurve(
+            to: CGPoint(x: mouthWidth/2, y: mouthY),
+            control: CGPoint(x: 0, y: mouthY - 5)
+        )
+        smile.path = smilePath
+        smile.strokeColor = .white
+        smile.lineWidth = 2
+        smile.position = player.position
+        addChild(smile)
+        headLines.append(smile)
+        
+        // Animate each line separately
+        for (index, line) in headLines.enumerated() {
+            let randomAngle = CGFloat.random(in: -CGFloat.pi...CGFloat.pi)
+            let randomDistance = CGFloat.random(in: 20...50)
+            let movePoint = CGPoint(
+                x: line.position.x + cos(randomAngle) * randomDistance,
+                y: line.position.y + sin(randomAngle) * randomDistance
+            )
+            
+            let moveAction = SKAction.move(to: movePoint, duration: 0.5)
+            let fadeAction = SKAction.fadeOut(withDuration: 0.5)
+            let rotateAction = SKAction.rotate(byAngle: randomAngle, duration: 0.5)
+            let group = SKAction.group([moveAction, fadeAction, rotateAction])
+            let remove = SKAction.removeFromParent()
+            
+            // Add slight delay based on index for cascade effect
+            let delay = SKAction.wait(forDuration: Double(index) * 0.05)
+            line.run(SKAction.sequence([delay, group, remove]))
+        }
+        
+        // Remove the original player node
+        player.removeFromParent()
     }
 }
 
