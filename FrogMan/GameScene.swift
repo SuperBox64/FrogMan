@@ -1122,6 +1122,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 removeBall(ballNode)
             }
         }
+
+        // Handle player-ball collision
+        if collision == (PhysicsCategory.player | PhysicsCategory.obstacle) {
+            let ball = (contact.bodyA.categoryBitMask == PhysicsCategory.obstacle) ? contact.bodyA.node : contact.bodyB.node
+            if let ballNode = ball as? SKShapeNode {
+                // Remove all actions
+                ballNode.removeAllActions()
+                createBaselineFireworks(at: ballNode.position)
+                removeBall(ballNode)
+                
+                // Award 1 point
+                score += 1
+                showScorePopup(amount: 1, at: contact.contactPoint, color: .orange)
+                return  // Return early to prevent death handling
+            }
+        }
     }
 
     private func createBaselineFireworks(at position: CGPoint) {
@@ -1357,6 +1373,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Show level complete message
         playSound("levelComplete")
         let levelComplete = SKLabelNode(text: "Level Complete!")
+    
+        
+        
+        
+        
+        
+        
+        
+        
         levelComplete.position = CGPoint(x: size.width/2, y: size.height/2)
         levelComplete.fontName = "Courier"
         levelComplete.fontSize = 36
