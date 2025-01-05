@@ -713,16 +713,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let platform = SKShapeNode()
         let path = CGMutablePath()
         
-        // Wave parameters adjusted for gentler slopes
-        let amplitude: CGFloat = 6.0  // Reduced amplitude for gentler waves
-        let frequency: CGFloat = 0.01  // Reduced frequency for longer, more slope-like waves
-        let thickness: CGFloat = platformHeight
+        // Wave parameters for a gentle wave
+        let amplitude: CGFloat = 6.0  // Height of the wave
+        let frequency: CGFloat = 0.01  // Length of the wave
         
         // Create points for the wave
         var points: [CGPoint] = []
-        let numPoints = 30  // Fewer points since we're making simpler shapes
+        let numPoints = 30
         
-        // Generate top wave points
+        // Generate wave points
         for i in 0...numPoints {
             let x = startX + (endX - startX) * CGFloat(i) / CGFloat(numPoints)
             let progress = CGFloat(i) / CGFloat(numPoints)
@@ -731,38 +730,27 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             points.append(CGPoint(x: x, y: waveY))
         }
         
-        // Start the path at the first point
-        path.move(to: CGPoint(x: points[0].x, y: points[0].y - thickness/2))
-        
-        // Draw bottom wave (offset by thickness)
-        for i in 0...numPoints {
-            let x = points[i].x
-            let y = points[i].y - thickness
-            if i == 0 {
-                path.move(to: CGPoint(x: x, y: y))
-                    } else {
-                path.addLine(to: CGPoint(x: x, y: y))
-            }
-        }
-        
-        // Draw up the right side
-        path.addLine(to: points[numPoints])
-        
-        // Draw top wave (reverse direction)
-        for i in (0...numPoints).reversed() {
+        // Create the wavy line
+        path.move(to: points[0])
+        for i in 1...numPoints {
             path.addLine(to: points[i])
         }
         
-        // Close the path
-        path.closeSubpath()
-        
         platform.path = path
-        platform.fillColor = .clear
-        platform.strokeColor = uniformBrown
+        platform.strokeColor = .brown
         platform.lineWidth = 2
+        platform.fillColor = .clear
 
-        // Create physics body from the path
-        platform.physicsBody = SKPhysicsBody(polygonFrom: path)
+        // Create physics body from path
+        let physicsPath = CGMutablePath()
+        physicsPath.move(to: points[0])
+        for i in 1...numPoints {
+            physicsPath.addLine(to: points[i])
+        }
+        
+        // Create a physics body with a small thickness
+        let physicsBody = SKPhysicsBody(edgeChainFrom: physicsPath)
+        platform.physicsBody = physicsBody
         platform.physicsBody?.isDynamic = false
         platform.physicsBody?.friction = 0.2
         platform.physicsBody?.restitution = 0
@@ -995,13 +983,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Handle platform color changes
         if let platform = platform, let player = playerNode as? SKNode {
-            // Get contact normal and positions
+            // Get contact normal
             let normal = contact.contactNormal
-            let playerPos = player.position
-            let platformPos = platform.position
-            
-            // Super lenient height check
-            let isAbovePlatform = playerPos.y > platformPos.y - platformHeight * 2  // Much more lenient
             
             // Initialize platform metadata if it doesn't exist
             if platform.userData == nil {
@@ -1013,80 +996,43 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // Get the current state
             let currentState = platform.userData?["state"] as? String ?? "brown"
             
-            // Testing mode: Make all platforms green on level 1 except one
-            if isTestingMode && currentLevel == 1 {
-                // Keep one platform brown for testing (the rightmost one)
-                if platform == platforms.last {
-                    // Process normally for the last platform
-                    if isAbovePlatform && normal.dy < 0.8 {  // Extremely lenient
-                            platform.strokeColor = .green
-                    platform.fillColor = .clear
-                    platform.lineWidth = 2
-                        platform.userData?["state"] = "green"
+            // FIXED: When hitting from above (negative normal.dy), turn GREEN
+            if normal.dy > 0  {  // Hit from above
+                platform.strokeColor = .green
+                platform.fillColor = .clear
+                platform.lineWidth = 2
+                platform.userData?["state"] = "green"
                 
-                        if platform.userData?["scored"] as? Bool != true {
-                            platform.userData?["scored"] = true
-                    score += 10
-                            showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
-                            checkLevelCompletion()
-                        }
-                        playSound("platformGreen")
-                    }
-                } else {
-                    // Make all other platforms green immediately
-                    if currentState != "green" {
-                        platform.strokeColor = .green
-                        platform.fillColor = .clear
-                        platform.lineWidth = 2
-                        platform.userData?["state"] = "green"
+                if platform.userData?["scored"] as? Bool != true {
                     platform.userData?["scored"] = true
-                    }
-                }
-            } else {
-                // Normal mode or other levels: Super lenient collision detection
-                if isAbovePlatform && normal.dy < 0.8 {  // Extremely lenient
-                    platform.strokeColor = .green
-                    platform.fillColor = .clear
-                    platform.lineWidth = 2
-                    platform.userData?["state"] = "green"
-                    
-                    if platform.userData?["scored"] as? Bool != true {
-                        platform.userData?["scored"] = true
-                        score += 10
-                        showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
+                    score += 10
+                    showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
                     checkLevelCompletion()
                 }
-                    playSound("platformGreen")
-                }
+                playSound("platformGreen")
             }
             
-            // Keep yellow detection the same
-            if normal.dy > 0.1 {  // Keep yellow threshold the same
-                if currentState == "brown" {
-                    platform.strokeColor = .yellow
+            // FIXED: When hitting from below (positive normal.dy), turn YELLOW
+            if normal.dy < 0 && currentState == "brown" {  // Hit from below
+                platform.strokeColor = .yellow
                 platform.fillColor = .clear
-                            platform.lineWidth = 2
-                    platform.userData?["state"] = "yellow"
-                            
-                    // Award 5 points for turning platform yellow
-                            score += 5
-                    showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
-                    playSound("platformYellow")
-                            
-                            // Check for balls on this platform
+                platform.lineWidth = 2
+                platform.userData?["state"] = "yellow"
+                
+                score += 5
+                showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
+                playSound("platformYellow")
+                
+                // Check for balls on this platform
                 var ballsToRemove: [SKShapeNode] = []
-                            for ball in basketballs {
-                                if let ballPhysics = ball.physicsBody,
+                for ball in basketballs {
+                    if let ballPhysics = ball.physicsBody,
                        let platformPhysics = platform.physicsBody {
                         let contactBodies = ballPhysics.allContactedBodies()
                         if contactBodies.contains(platformPhysics) {
-                            // Create implosion effect
                             createVectorImplosion(at: ball.position)
-                            
-                            // Award 7 points for each ball
                             score += 7
                             showScorePopup(amount: 7, at: ball.position, color: .orange)
-                            
                             ballsToRemove.append(ball)
                         }
                     }
@@ -1094,8 +1040,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 
                 // Remove all affected balls
                 for ball in ballsToRemove {
-                        removeBall(ball)
-                                    }
+                    removeBall(ball)
                 }
             }
         }
@@ -2052,7 +1997,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // If all platforms are green, complete the level
         if allGreen {
-            currentLevel += 1
             startNextLevel()
             setupLevel()  // Setup next level
         }
