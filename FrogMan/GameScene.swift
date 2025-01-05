@@ -7,6 +7,7 @@
 
 import SpriteKit
 import GameplayKit
+import AVFoundation
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
@@ -204,6 +205,71 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let maxBalls = 6
     private var currentBallCount = 0
     
+    // Add at top of file
+    private let soundFiles: [String: String] = [
+        "jump": "jump_07.wav",
+        "land":
+            "sfx_movement_jump16_landing.wav",
+        "platformGreen": "platform_green.mp3",
+        "platformYellow": "platform_yellow.mp3",
+        "ballSpawn": "ball_spawn.mp3",
+        "ballCollect": "ball_collect.mp3",
+        "ballImplosion": "ball_implosion.mp3",
+        "death": "death.wav",
+        "levelComplete": "level_complete.mp3",
+        "gameOver": "game_over.wav",
+        "score": "score.mp3",
+        "bgMusic": "bgMusic.wav"
+    ]
+    
+    private var audioPlayers: [String: NSSound] = [:]
+    
+    // Replace setupSounds with macOS version
+    private func setupSounds() {
+        // Load all sounds
+        for (key, filename) in soundFiles {
+            if let url = Bundle.main.url(forResource: filename.components(separatedBy: ".")[0],
+                                       withExtension: filename.components(separatedBy: ".")[1]) {
+                if let sound = NSSound(contentsOf: url, byReference: true) {
+                    // Set background music to loop
+                    if key == "bgMusic" {
+                        sound.loops = true
+                        sound.volume = 0.3
+                    }
+                    // Set game over sound volume to 50%
+                    if key == "gameOver" {
+                        sound.volume = 0.5
+                    }
+                    audioPlayers[key] = sound
+                }
+            }
+        }
+    }
+    
+    private func playSound(_ key: String) {
+        if let sound = audioPlayers[key] {
+            sound.stop()  // Stop any current playback
+            sound.currentTime = 0  // Reset to beginning
+            // Ensure game over sound maintains 50% volume
+            if key == "gameOver" {
+                sound.volume = 0.1
+            }
+            sound.play()
+        }
+    }
+    
+    private func stopSound(_ key: String) {
+        audioPlayers[key]?.stop()
+    }
+    
+    private func startBackgroundMusic() {
+        playSound("bgMusic")
+    }
+    
+    private func stopBackgroundMusic() {
+        stopSound("bgMusic")
+    }
+    
     override func sceneDidLoad() {
         super.sceneDidLoad()
         
@@ -257,6 +323,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     private func startGame() {
+        setupSounds()
+        startBackgroundMusic()
         // Remove title screen
         children.filter { $0.name == "titleScreen" }.forEach { $0.removeFromParent() }
         
@@ -367,6 +435,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // New function to handle ball replacement with delay
     private func spawnReplacementBall() {
+        // When red indicator appears
+        playSound("ballSpawn")
         if isSpawningBall { return }  // Only prevent multiple spawn sequences
         if currentBallCount >= maxBalls { return }  // Don't spawn if at max
         
@@ -381,7 +451,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             guard let self = self else { return }
             
             // Double check we still need a ball
-            if self.currentBallCount >= maxBalls {
+            if self.currentBallCount >= self.maxBalls {
                 self.isSpawningBall = false
                 return
             }
@@ -845,6 +915,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     // Check if level is complete
                     checkLevelCompletion()
                 }
+                playSound("platformGreen")
             } else if platform.userData?["state"] as? String == "brown" {
                 // Side collision with brown platform - turn yellow
                 platform.strokeColor = .yellow
@@ -855,6 +926,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 // Award 5 points for turning platform yellow
                 score += 5
                 showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
+                playSound("platformYellow")
                 
                 // Check for balls on this platform
                 var ballsToRemove: [SKShapeNode] = []
@@ -884,6 +956,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Check for player and ball collision
         if collision == (PhysicsCategory.player | PhysicsCategory.obstacle) {
+            // Play death sound immediately
+            playSound("death")
+            
             // Decrease life
             lives -= 1
             
@@ -956,6 +1031,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     private func gameOver() {
+        stopBackgroundMusic()
+        playSound("gameOver")
         // Remove all existing balls and their spawn indicators
         children.forEach { node in
             if node.name == "ball" || node.name == "spawnLine" {
@@ -1153,7 +1230,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add new function for level progression
     private func startNextLevel() {
-        
+        playSound("levelComplete")
         let levelComplete = SKLabelNode(text: "Level Complete!")
         levelComplete.position = CGPoint(x: size.width/2, y: size.height/2)
         levelComplete.fontName = "Courier"
@@ -1169,6 +1246,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     private func handleLifeLost() {
+        playSound("death")  // Play death sound first
         // Remove the player completely
         player.removeFromParent()
         
@@ -1181,6 +1259,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private func handleJump() {
         if canJump {
+            playSound("jump")
             print("Attempting jump")
             player.physicsBody?.velocity.dy = 0
             
@@ -1453,6 +1532,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Helper function to show score popup
     private func showScorePopup(amount: Int, at position: CGPoint, color: NSColor) {
+        playSound("score")
         // Create vector number for the score popup
         let scorePopup = drawVectorNumber(amount, at: position)
         scorePopup.position = CGPoint(x: position.x, y: position.y + 20)
@@ -1559,6 +1639,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add this new function for the vector explosion effect
     private func createVectorExplosion(at position: CGPoint) {
+        playSound("ballCollect")
         let numLines = 12
         let explosionRadius: CGFloat = 50
         
@@ -1599,6 +1680,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add this new function for the implosion effect
     private func createVectorImplosion(at position: CGPoint) {
+        playSound("ballImplosion")
         let numLines = 12
         let startRadius: CGFloat = 50
         
