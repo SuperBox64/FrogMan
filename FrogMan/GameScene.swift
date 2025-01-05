@@ -580,58 +580,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.run(SKAction.sequence([waitAction, spawnAction]))
     }
     
-    // Helper function to get spawn point
-    private func getAvailableSpawnPoint() -> CGPoint? {
-        // Clean up old spawn locations
-        let currentTime = Date().timeIntervalSince1970
-        recentSpawnLocations = recentSpawnLocations.filter { 
-            currentTime - $0.timestamp < spawnCooldownTime 
-        }
-        
-        // Try to find an available spawn point
-        let randomX = CGFloat.random(in: size.width * 0.2...size.width * 0.8)
-        let spawnY = size.height * 0.9
-        let potentialPoint = CGPoint(x: randomX, y: spawnY)
-        
-        // Check if this location was recently used
-        let isRecentlyUsed = recentSpawnLocations.contains { 
-            let distance = hypot($0.point.x - potentialPoint.x, 
-                               $0.point.y - potentialPoint.y)
-            return distance < 50  // Minimum distance between spawn points
-        }
-        
-        return isRecentlyUsed ? nil : potentialPoint
-    }
-    
-    // Helper to create pixel-perfect blocks
-    private func createPixelBlock(size: CGSize, color: NSColor) -> SKShapeNode {
-        let block = SKShapeNode(rectOf: size)
-        block.fillColor = .clear
-        block.strokeColor = color
-        block.lineWidth = 2
-
-        return block
-    }
-    
-    // Helper function to calculate slope
-    private func calculateSlope(sectionCenterX: CGFloat, centerX: CGFloat, isMiddleSection: Bool, currentLevel: Int) -> CGFloat {
-        if currentLevel == 1 {
-            // Level 1: Normal pattern
-            if isMiddleSection {
-                return (sectionCenterX < centerX) ? 0.05 : -0.05  // ^ shape for middle
-            } else {
-                return (sectionCenterX < centerX) ? -0.05 : 0.05  // v shape for sides
-            }
-        } else {
-            // Level 2 and up: Opposite pattern
-            if isMiddleSection {
-                return (sectionCenterX < centerX) ? -0.05 : 0.05  // v shape for middle
-            } else {
-                return (sectionCenterX < centerX) ? 0.05 : -0.05  // ^ shape for sides
-            }
-        }
-    }
-    
     private func setupPlatforms() {
         // Reset counters at start of level
         totalPlatforms = 0
@@ -1272,24 +1220,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
     }
     
-    // Add helper function to reset limb positions
-    private func resetLimbs() {
-        let resetAction = SKAction.rotate(toAngle: 0, duration: 0.1)
-        player.childNode(withName: "leftLeg")?.run(resetAction)
-        player.childNode(withName: "rightLeg")?.run(resetAction)
-        player.childNode(withName: "leftArm")?.run(resetAction)
-        player.childNode(withName: "rightArm")?.run(resetAction)
-    }
-    
-    private func setupBasketball() {
-        // Always start with 6 basketballs
-        let numBasketballs = 6
-        
-        for _ in 0..<numBasketballs {
-            createNewBasketball(platformHeights: platformHeights)
-        }
-    }
-    
     // Add new function to create a single basketball
     private func createBasketball() -> SKShapeNode {
         // Don't create balls if game is over
@@ -1368,49 +1298,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return ball
     }
     
-    // Add new function to create a single basketball
-    private func createNewBasketball(platformHeights: [CGFloat]) {
-        // Clean up old spawn locations first
-        let currentTime = Date().timeIntervalSince1970
-        recentSpawnLocations = recentSpawnLocations.filter { 
-            currentTime - $0.timestamp < spawnCooldownTime 
-        }
-        
-        // Get all possible spawn points
-        var availableSpawnPoints: [(x: CGFloat, y: CGFloat)] = []
-        
-        for height in platformHeights {
-            let spawnY = size.height * height + 50  // Above platform
-            let spawnX = CGFloat.random(in: size.width * 0.2...size.width * 0.8)
-            let potentialPoint = CGPoint(x: spawnX, y: spawnY)
-            
-            // Check if this location was recently used
-            let isRecentlyUsed = recentSpawnLocations.contains { 
-                let distance = hypot($0.point.x - potentialPoint.x, 
-                                   $0.point.y - potentialPoint.y)
-                return distance < 50  // Minimum distance between spawn points
-            }
-            
-            if !isRecentlyUsed {
-                availableSpawnPoints.append((spawnX, spawnY))
-            }
-        }
-        
-        // If we have available points, spawn a ball
-        if let spawnPoint = availableSpawnPoints.randomElement() {
-            let ball = createBasketball()
-            ball.position = CGPoint(x: spawnPoint.x, y: spawnPoint.y)
-            addChild(ball)
-            basketballs.append(ball)
-            
-            // Record this spawn location
-            recentSpawnLocations.append((
-                point: CGPoint(x: spawnPoint.x, y: spawnPoint.y),
-                timestamp: currentTime
-            ))
-        }
-    }
-    
     // Add restart function
     private func restartGame() {
         
@@ -1485,18 +1372,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         levelComplete.run(SKAction.sequence([fadeIn, wait, fadeOut, remove, setupNew]))
-    }
-    
-    private func handleLifeLost() {
-        playSound("death")  // Play death sound first
-        // Remove the player completely
-        player.removeFromParent()
-        
-        // Recreate the player from scratch
-        setupPlayer()
-        
-        // Reset jump state
-        canJump = true
     }
     
     private func handleJump() {
