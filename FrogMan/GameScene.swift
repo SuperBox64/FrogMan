@@ -38,32 +38,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var scoreLabel: SKLabelNode!
     
     // Platform constants
-    private let PLATFORM_SPACING: CGFloat = 0.125
+    private let platformSpacing: CGFloat = 0.125
     
     // Jump forces
     struct JumpForce {
         // Standing jump - increase significantly
-        static let STANDING_VERTICAL: CGFloat = 600    // Increased from 500
-        static let STANDING_HORIZONTAL: CGFloat = 0
+        static let standingVertical: CGFloat = 600    // Increased from 500
+        static let standingHorizontal: CGFloat = 0
         
         // Running jump - adjust proportionally
-        static let RUNNING_VERTICAL: CGFloat = 450     // Increased from 350
-        static let RUNNING_HORIZONTAL: CGFloat = 100   // Keep horizontal momentum
+        static let runningVertical: CGFloat = 450     // Increased from 350
+        static let runningHorizontal: CGFloat = 100   // Keep horizontal momentum
     }
     
     // Add this property at the top with other properties
-    private let MOVE_SPEED: CGFloat = 200.0
-    private let MAX_GAPS_PER_PLATFORM = 3 // Maximum number of gaps per platform
+    private let moveSpeed: CGFloat = 200.0
+    private let maxGapsPerPlatform = 3 // Maximum number of gaps per platform
     private var isMovingLeft = false
     private var isMovingRight = false
-    private let PLATFORM_HEIGHT: CGFloat = 15.0
-    private let MIN_PLATFORM_WIDTH: CGFloat = 80.0 // Smaller minimum platform width
-    private let PLATFORM_SLOPE: CGFloat = 0.05 // Consistent slope for rolling
+    private let platformHeight: CGFloat = 15.0
+    private let minPlatformWidth: CGFloat = 80.0 // Smaller minimum platform width
+    private let platformSlope: CGFloat = 0.05 // Consistent slope for rolling
     private var lastUpdateTime: TimeInterval = 0
     private var isUpPressed = false
     
     // Add color constants at the top
-    private let UNIFORM_BROWN = NSColor.brown
+    private let uniformBrown = NSColor.brown
     
     // At the top of the class with other constants
     private let platformHeights: [CGFloat] = [0.2, 0.35, 0.5, 0.65, 0.8]
@@ -74,7 +74,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var lastPlatformY: CGFloat = 0  // Track last platform player touched
     private var lastPlatformX: CGFloat = 0  // Track last platform section player touched
     private var scoredBalls: Set<SKShapeNode> = []  // Track balls we've scored points for
-    private let BALL_DETECTION_RADIUS: CGFloat = 100
+    private let ballDetectionRadius: CGFloat = 100
     private var scoredPlatforms: Set<SKNode> = []  // Track platforms we've scored points for
     private var currentLevel = 1
     private var levelLabel: SKLabelNode!
@@ -83,15 +83,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var isSpawningBall = false
     
     // Constants for positioning
-    private let BASELINE_HEIGHT: CGFloat = 20  // Increased from 5 to 20
-    private let PLAYER_START_HEIGHT: CGFloat = 40  // Height above baseline
+    private let baselineHeight: CGFloat = 20  // Increased from 5 to 20
+    private let playerStartHeight: CGFloat = 40  // Height above baseline
     
     // Add property to store spawn points
     private var spawnPoints: [(x: CGFloat, y: CGFloat)] = []
     
     // Constants for player movement
-    private let JUMP_FORCE: CGFloat = -400  // Increase jump force (negative because y-axis is inverted)
-    private let GROUND_HEIGHT: CGFloat = 30  // Increase height above baseline
+    private let jumpForce: CGFloat = -400  // Increase jump force (negative because y-axis is inverted)
+    private let groundHeight: CGFloat = 30  // Increase height above baseline
     
     // Add at top of class
     private var isHandlingCollision = false
@@ -119,89 +119,89 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add property to track indicator cooldowns
     private var indicatorCooldowns: [SKNode: TimeInterval] = [:]
-    private let SPAWN_COOLDOWN: TimeInterval = 4.0  // 4 seconds cooldown
+    private let spawnCooldown: TimeInterval = 4.0  // 4 seconds cooldown
     
     // Add property at top of class
     private var gameStarted = false
     
     // At top of class with other properties
-    private let VECTOR_LETTERS: [String: [[CGPoint]]] = [
-        "F": [[CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 0),
-               CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)]],
+    private let vectorLetters: [String: [CGPoint]] = [
+        "F": [CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 0),
+              CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)],
         
-        "R": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 30, y: 100),
-               CGPoint(x: 30, y: 100), CGPoint(x: 40, y: 80),
-               CGPoint(x: 40, y: 80), CGPoint(x: 40, y: 60),
-               CGPoint(x: 40, y: 60), CGPoint(x: 30, y: 50),
-               CGPoint(x: 30, y: 50), CGPoint(x: 0, y: 50),
-               CGPoint(x: 15, y: 50), CGPoint(x: 40, y: 0)]],
+        "R": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 30, y: 100),
+              CGPoint(x: 30, y: 100), CGPoint(x: 40, y: 80),
+              CGPoint(x: 40, y: 80), CGPoint(x: 40, y: 60),
+              CGPoint(x: 40, y: 60), CGPoint(x: 30, y: 50),
+              CGPoint(x: 30, y: 50), CGPoint(x: 0, y: 50),
+              CGPoint(x: 15, y: 50), CGPoint(x: 40, y: 0)],
         
-        "O": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0),
-               CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)]],
+        "O": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+              CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0),
+              CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)],
         
-        "G": [[CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 0),
-               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-               CGPoint(x: 40, y: 60), CGPoint(x: 20, y: 60),
-               CGPoint(x: 40, y: 60), CGPoint(x: 40, y: 0)]],
+        "G": [CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 0),
+              CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+              CGPoint(x: 40, y: 60), CGPoint(x: 20, y: 60),
+              CGPoint(x: 40, y: 60), CGPoint(x: 40, y: 0)],
         
-        "M": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 50),
-               CGPoint(x: 20, y: 50), CGPoint(x: 40, y: 100),
-               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0)]],
+        "M": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 50),
+              CGPoint(x: 20, y: 50), CGPoint(x: 40, y: 100),
+              CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0)],
         
-        "A": [[CGPoint(x: 0, y: 0), CGPoint(x: 20, y: 100),
-               CGPoint(x: 20, y: 100), CGPoint(x: 40, y: 0),
-               CGPoint(x: 10, y: 50), CGPoint(x: 30, y: 50)]],
+        "A": [CGPoint(x: 0, y: 0), CGPoint(x: 20, y: 100),
+              CGPoint(x: 20, y: 100), CGPoint(x: 40, y: 0),
+              CGPoint(x: 10, y: 50), CGPoint(x: 30, y: 50)],
         
-        "N": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 0),
-               CGPoint(x: 40, y: 0), CGPoint(x: 40, y: 100)]],
-               
-        "P": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 50),
-               CGPoint(x: 40, y: 50), CGPoint(x: 0, y: 50)]],
-               
-        "S": [[CGPoint(x: 40, y: 100), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 50),
-               CGPoint(x: 0, y: 50), CGPoint(x: 40, y: 50),
-               CGPoint(x: 40, y: 50), CGPoint(x: 40, y: 0),
-               CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)]],
-               
-        "C": [[CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
-               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)]],
-               
-        "E": [[CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
-               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-               CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)]],
-               
-        "T": [[CGPoint(x: 20, y: 0), CGPoint(x: 20, y: 100),
-               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)]],
-               
-        "V": [[CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 0),
-               CGPoint(x: 20, y: 0), CGPoint(x: 40, y: 100)]],
+        "N": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 0),
+              CGPoint(x: 40, y: 0), CGPoint(x: 40, y: 100)],
         
-        " ": [[CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 0)]]  // Empty space with O-width
+        "P": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+              CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 50),
+              CGPoint(x: 40, y: 50), CGPoint(x: 0, y: 50)],
+        
+        "S": [CGPoint(x: 40, y: 100), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 50),
+              CGPoint(x: 0, y: 50), CGPoint(x: 40, y: 50),
+              CGPoint(x: 40, y: 50), CGPoint(x: 40, y: 0),
+              CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)],
+        
+        "C": [CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
+              CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)],
+        
+        "E": [CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
+              CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+              CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)],
+        
+        "T": [CGPoint(x: 20, y: 0), CGPoint(x: 20, y: 100),
+              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)],
+        
+        "V": [CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 0),
+              CGPoint(x: 20, y: 0), CGPoint(x: 40, y: 100)],
+        
+        " ": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 0)]  // Empty space
     ]
     
     // Add these properties at the top of the class
-    private let BASELINE_LINE_WIDTH: CGFloat = 2.0
-    private let DEATH_ZONE_WIDTH: CGFloat = 50.0
-    private let DEATH_ZONE_SPACING: CGFloat = 25.0  // 25 pixels between red zones
+    private let baselineLineWidth: CGFloat = 2.0
+    private let deathZoneWidth: CGFloat = 50.0
+    private let deathZoneSpacing: CGFloat = 25.0  // 25 pixels between red zones
     
     // Add at top of class
-    private let SPAWN_COOLDOWN_TIME: TimeInterval = 2.0  // Time before location can be reused
+    private let spawnCooldownTime: TimeInterval = 2.0  // Time before location can be reused
     private var recentSpawnLocations: [(point: CGPoint, timestamp: TimeInterval)] = []
     
     // Add at top of class with other properties
-    private let MAX_BALLS = 6
+    private let maxBalls = 6
     private var currentBallCount = 0
     
     override func sceneDidLoad() {
@@ -349,7 +349,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     x: currentX,
                     y: platformY,
                     width: sectionWidth,
-                    height: PLATFORM_HEIGHT
+                    height: platformHeight
                 )
                 
                 // Only create platform if it doesn't intersect with safe zone
@@ -357,7 +357,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     createPlatformSection(from: currentX,
                                        to: currentX + sectionWidth,
                                        at: platformY,
-                                       slope: CGFloat.random(in: -PLATFORM_SLOPE...PLATFORM_SLOPE))
+                                       slope: CGFloat.random(in: -platformSlope...platformSlope))
                 }
                 
                 currentX += sectionWidth + (size.width * CGFloat.random(in: 0.05...0.1))
@@ -368,7 +368,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // New function to handle ball replacement with delay
     private func spawnReplacementBall() {
         if isSpawningBall { return }  // Only prevent multiple spawn sequences
-        if currentBallCount >= MAX_BALLS { return }  // Don't spawn if at max
+        if currentBallCount >= maxBalls { return }  // Don't spawn if at max
         
         isSpawningBall = true
         
@@ -381,7 +381,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             guard let self = self else { return }
             
             // Double check we still need a ball
-            if self.currentBallCount >= MAX_BALLS {
+            if self.currentBallCount >= maxBalls {
                 self.isSpawningBall = false
                 return
             }
@@ -402,7 +402,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 SKAction.wait(forDuration: 1.0),
                 SKAction.run {
                     // Final check before spawning
-                    if self.currentBallCount < self.MAX_BALLS {
+                    if self.currentBallCount < self.maxBalls {
                         // Create new ball at the EXACT indicator position
                         let newBasketball = self.createBasketball()
                         newBasketball.position = spawnLine.position
@@ -432,7 +432,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Clean up old spawn locations
         let currentTime = Date().timeIntervalSince1970
         recentSpawnLocations = recentSpawnLocations.filter { 
-            currentTime - $0.timestamp < SPAWN_COOLDOWN_TIME 
+            currentTime - $0.timestamp < spawnCooldownTime 
         }
         
         // Try to find an available spawn point
@@ -562,7 +562,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Wave parameters adjusted for gentler slopes
         let amplitude: CGFloat = 6.0  // Reduced amplitude for gentler waves
         let frequency: CGFloat = 0.01  // Reduced frequency for longer, more slope-like waves
-        let thickness: CGFloat = PLATFORM_HEIGHT
+        let thickness: CGFloat = platformHeight
         
         // Create points for the wave
         var points: [CGPoint] = []
@@ -604,7 +604,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         platform.path = path
         platform.fillColor = .clear
-        platform.strokeColor = UNIFORM_BROWN
+        platform.strokeColor = uniformBrown
         platform.lineWidth = 2
 
         // Create physics body from the path
@@ -685,7 +685,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 playerBody.linearDamping = 1.0  // Restore damping when stopping
             } else {
                 // If right is still pressed, immediately switch to right movement
-                playerBody.velocity.dx = MOVE_SPEED
+                playerBody.velocity.dx = moveSpeed
             }
             
         case 0x7C:  // Right arrow
@@ -695,7 +695,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 playerBody.linearDamping = 1.0  // Restore damping when stopping
             } else {
                 // If left is still pressed, immediately switch to left movement
-                playerBody.velocity.dx = -MOVE_SPEED
+                playerBody.velocity.dx = -moveSpeed
             }
             
         default:
@@ -733,18 +733,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         // If we have less than max balls, try to spawn a new one
-        if currentBallCount < MAX_BALLS {
+        if currentBallCount < maxBalls {
             spawnReplacementBall()
         }
         
         // Remove any delay/pause in movement
         if isMovingLeft {
-            let newX = player.position.x - MOVE_SPEED * CGFloat(1.0/60.0)
+            let newX = player.position.x - moveSpeed * CGFloat(1.0/60.0)
             player.position.x = max(playerSize.width/2, newX)
         }
         
         if isMovingRight {
-            let newX = player.position.x + MOVE_SPEED * CGFloat(1.0/60.0)
+            let newX = player.position.x + moveSpeed * CGFloat(1.0/60.0)
             player.position.x = min(size.width - playerSize.width/2, newX)
         }
         
@@ -1093,7 +1093,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Clean up old spawn locations first
         let currentTime = Date().timeIntervalSince1970
         recentSpawnLocations = recentSpawnLocations.filter { 
-            currentTime - $0.timestamp < SPAWN_COOLDOWN_TIME 
+            currentTime - $0.timestamp < spawnCooldownTime 
         }
         
         // Get all possible spawn points
@@ -1222,14 +1222,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             if isMovingLeft || isMovingRight {
                 // Running jump
                 player.physicsBody?.applyImpulse(CGVector(
-                    dx: isMovingLeft ? -JumpForce.RUNNING_HORIZONTAL : JumpForce.RUNNING_HORIZONTAL,
-                    dy: JumpForce.RUNNING_VERTICAL
+                    dx: isMovingLeft ? -JumpForce.runningHorizontal : JumpForce.runningHorizontal,
+                    dy: JumpForce.runningVertical
                 ))
             } else {
                 // Standing jump
                 player.physicsBody?.applyImpulse(CGVector(
-                    dx: JumpForce.STANDING_HORIZONTAL,
-                    dy: JumpForce.STANDING_VERTICAL
+                    dx: JumpForce.standingHorizontal,
+                    dy: JumpForce.standingVertical
                 ))
             }
             
@@ -1276,25 +1276,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Draw head outline with curved bottom and top
         headPath.move(to: points[0])
         
-        // Draw sides and top
-        for i in 1..<points.count {
+        // Draw left side up to the start of top curve
+        for i in 1...3 {
+            headPath.addLine(to: points[i])
+        }
+        
+        // Draw curved top
+        let topControlPoint = CGPoint(x: 0, y: headHeight/1.7 + 2)
+        headPath.addQuadCurve(to: points[5], control: topControlPoint)
+        
+        // Draw right side down
+        for i in 6..<points.count {
             headPath.addLine(to: points[i])
         }
         
         // Add curved bottom
-        let bottomControlPoint = CGPoint(x: 0, y: -headHeight/2 - 2)  // Control point below bottom
-        headPath.addQuadCurve(
-            to: points[0],  // Back to start
-            control: bottomControlPoint
-        )
-        
-        // Add curved top
-        let topControlPoint = CGPoint(x: 0, y: headHeight/1.7 + 2)  // Control point above top
-        headPath.move(to: points[3])  // Move to left upper curve
-        headPath.addQuadCurve(
-            to: points[5],  // To right upper curve
-            control: topControlPoint
-        )
+        let bottomControlPoint = CGPoint(x: 0, y: -headHeight/2 - 2)
+        headPath.addQuadCurve(to: points[0], control: bottomControlPoint)
         
         headOutline.path = headPath
         headOutline.strokeColor = .green
@@ -1374,7 +1372,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Position player higher above baseline
         player.position = CGPoint(x: size.width * 0.05, 
-                                y: BASELINE_HEIGHT + playerSize.height)  // Added full height instead of half
+                                y: baselineHeight + playerSize.height)  // Added full height instead of half
         addChild(player)
     }
     
@@ -1784,43 +1782,42 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.removeFromParent()
     }
     
-    // Add function to create vector text
+    // Fix the createVectorText function
     private func createVectorText(_ text: String, position: CGPoint, color: NSColor, scale: CGFloat = 1.0) -> SKNode {
         let textNode = SKNode()
         var offsetX: CGFloat = 0
         
         for char in text.uppercased() {
-            if let letterPoints = VECTOR_LETTERS[String(char)] {
+            if let points = vectorLetters[String(char)] {
                 let letterNode = SKNode()
                 
-                for segment in letterPoints {
-                    for i in stride(from: 0, to: segment.count, by: 2) {
-                        let line = SKShapeNode()
-                        let path = CGMutablePath()
-                        
-                        let startPoint = CGPoint(
-                            x: segment[i].x * scale,
-                            y: segment[i].y * scale
-                        )
-                        let endPoint = CGPoint(
-                            x: segment[i + 1].x * scale,
-                            y: segment[i + 1].y * scale
-                        )
-                        
-                        path.move(to: startPoint)
-                        path.addLine(to: endPoint)
-                        
-                        line.path = path
-                        line.strokeColor = color
-                        line.lineWidth = 2
-                        letterNode.addChild(line)
-                    }
+                // Draw lines for each pair of points
+                for i in stride(from: 0, to: points.count, by: 2) {
+                    let line = SKShapeNode()
+                    let path = CGMutablePath()
+                    
+                    let startPoint = CGPoint(
+                        x: points[i].x * scale,
+                        y: points[i].y * scale
+                    )
+                    let endPoint = CGPoint(
+                        x: points[i + 1].x * scale,
+                        y: points[i + 1].y * scale
+                    )
+                    
+                    path.move(to: startPoint)
+                    path.addLine(to: endPoint)
+                    
+                    line.path = path
+                    line.strokeColor = color
+                    line.lineWidth = 2
+                    letterNode.addChild(line)
                 }
                 
                 letterNode.position = CGPoint(x: offsetX, y: 0)
                 textNode.addChild(letterNode)
                 
-                offsetX += 50 * scale  // Space between letters (matches original O width)
+                offsetX += 50 * scale  // Space between letters
             }
         }
         
@@ -1838,29 +1835,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         baseline.path = baselinePath
         baseline.strokeColor = .green
-        baseline.lineWidth = BASELINE_LINE_WIDTH
+        baseline.lineWidth = baselineLineWidth
         addChild(baseline)
         
         // Create 3 evenly spaced red death zones
         let totalWidth = size.width
-        let usableWidth = totalWidth - (DEATH_ZONE_WIDTH * 3)
+        let usableWidth = totalWidth - (deathZoneWidth * 3)
         let spacing = usableWidth / 4
         
         for i in 0..<3 {
             let deathZone = SKShapeNode()
             let deathZonePath = CGMutablePath()
             
-            let xPosition = spacing + (CGFloat(i) * (DEATH_ZONE_WIDTH + spacing))
+            let xPosition = spacing + (CGFloat(i) * (deathZoneWidth + spacing))
             deathZonePath.move(to: CGPoint(x: xPosition, y: 1))  // 1px up from bottom
-            deathZonePath.addLine(to: CGPoint(x: xPosition + DEATH_ZONE_WIDTH, y: 1))  // 1px up from bottom
+            deathZonePath.addLine(to: CGPoint(x: xPosition + deathZoneWidth, y: 1))  // 1px up from bottom
             
             deathZone.path = deathZonePath
             deathZone.strokeColor = .red
-            deathZone.lineWidth = BASELINE_LINE_WIDTH
+            deathZone.lineWidth = baselineLineWidth
             
             // Add physics body for death zone
             deathZone.physicsBody = SKPhysicsBody(edgeFrom: CGPoint(x: xPosition, y: 1),
-                                                 to: CGPoint(x: xPosition + DEATH_ZONE_WIDTH, y: 1))
+                                                 to: CGPoint(x: xPosition + deathZoneWidth, y: 1))
             deathZone.physicsBody?.categoryBitMask = PhysicsCategory.obstacle
             deathZone.physicsBody?.contactTestBitMask = PhysicsCategory.player
             deathZone.physicsBody?.collisionBitMask = 0
