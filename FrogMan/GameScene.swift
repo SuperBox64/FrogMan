@@ -813,13 +813,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Handle platform color changes
         if let platform = platform, let player = playerNode as? SKNode {
-            // Get contact normal and contact point
+            // Get contact normal and positions
             let normal = contact.contactNormal
             let playerPos = player.position
             let platformPos = platform.position
             
-            // Calculate if player is above the platform
-            let isAbovePlatform = playerPos.y > platformPos.y
+            // Calculate if player is above the platform - use a more generous threshold
+            let isAbovePlatform = playerPos.y > platformPos.y + platformHeight/2
             
             // Initialize platform metadata if it doesn't exist
             if platform.userData == nil {
@@ -829,7 +829,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
             
             // Check if contact is from above - ALWAYS turn green if from above
-            if normal.dy < -0.5 && isAbovePlatform {
+            if isAbovePlatform {  // Simplified check, removed normal.dy threshold
                 // Top collision - always turn green regardless of current state
                 platform.strokeColor = .green
                 platform.fillColor = .clear
