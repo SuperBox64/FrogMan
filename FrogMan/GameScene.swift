@@ -388,23 +388,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             spawnLine.name = "spawnLine"
             self.addChild(spawnLine)
             
-            // Wait 3 seconds, then spawn the ball
+            // Changed from 3 seconds to 1 second wait time
             let spawnBallAction = SKAction.sequence([
-                SKAction.wait(forDuration: 3.0),
+                SKAction.wait(forDuration: 1.0),  // Changed from 3.0 to 1.0
                 SKAction.run {
-                    // Create new ball with spawn location check
-                    if let spawnPoint = self.getAvailableSpawnPoint() {
-                        let newBasketball = self.createBasketball()
-                        newBasketball.position = CGPoint(x: spawnPoint.x, y: spawnPoint.y)
+                    // Create new ball at the EXACT indicator position
+                    let newBasketball = self.createBasketball()
+                    newBasketball.position = spawnLine.position  // Use indicator position directly
                     self.addChild(newBasketball)
                     self.basketballs.append(newBasketball)
-                        
-                        // Record spawn location
-                        self.recentSpawnLocations.append((
-                            point: spawnPoint,
-                            timestamp: Date().timeIntervalSince1970
-                        ))
-                    }
+                    
+                    // Record spawn location
+                    self.recentSpawnLocations.append((
+                        point: spawnLine.position,
+                        timestamp: Date().timeIntervalSince1970
+                    ))
+                    
                     spawnLine.removeFromParent()  // Remove the indicator after ball spawns
                 }
             ])
@@ -771,49 +770,62 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             node?.physicsBody?.categoryBitMask == PhysicsCategory.platform
         } as? SKShapeNode
         
-        let player = [contact.bodyA.node, contact.bodyB.node].first { node in
+        let playerNode = [contact.bodyA.node, contact.bodyB.node].first { node in
             node?.physicsBody?.categoryBitMask == PhysicsCategory.player
         }
         
         // Handle platform color changes
-        if let platform = platform, let player = player {
-            // Get contact normal
+        if let platform = platform, let player = playerNode as? SKNode {
+            // Get contact normal and contact point
             let normal = contact.contactNormal
+            let playerPos = player.position
+            let platformPos = platform.position
             
-            // Check if contact is from above (normal.dy is negative when hitting from top)
-            if normal.dy < -0.8 {  // Using -0.8 to allow for slight angles
-                // Check if platform hasn't been scored yet
-                if platform.userData?["scored"] as? Bool != true {
-                    // Top collision - turn green
-                            platform.strokeColor = .green
+            // Calculate if player is above the platform
+            let isAbovePlatform = playerPos.y > platformPos.y
+            
+            // Initialize platform metadata if it doesn't exist
+            if platform.userData == nil {
+                platform.userData = NSMutableDictionary()
+                platform.userData?["state"] = "gold"  // Initial state
+                platform.userData?["scored"] = false
+            }
+            
+            // Check if contact is from above
+            if normal.dy < -0.5 && isAbovePlatform {
+                let currentState = platform.userData?["state"] as? String ?? "gold"
+                let isScored = platform.userData?["scored"] as? Bool ?? false
+                
+                if !isScored {
+                    // Top collision - always turn green
+                    platform.strokeColor = .green
                     platform.fillColor = .clear
                     platform.lineWidth = 2
-                
-                    // Add score and show popup only if not previously scored
-                    score += 10
-                            showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
-                    
-                    // Mark platform as scored
-                    platform.userData = NSMutableDictionary()
+                    platform.userData?["state"] = "green"
                     platform.userData?["scored"] = true
+                    
+                    // Add score and show popup
+                    score += 10
+                    showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
                     
                     // Check if level is complete
                     checkLevelCompletion()
                 }
-                        } else if platform.strokeColor == UNIFORM_GOLD {
-                // Side collision with gold platform - turn orange first
-                            platform.strokeColor = .orange
+            } else if platform.userData?["state"] as? String == "gold" {
+                // Side collision with gold platform - turn orange
+                platform.strokeColor = .orange
                 platform.fillColor = .clear
-                            platform.lineWidth = 2
-                            
+                platform.lineWidth = 2
+                platform.userData?["state"] = "orange"
+                
                 // Award 5 points for turning platform orange
-                            score += 5
+                score += 5
                 showScorePopup(amount: 5, at: contact.contactPoint, color: .orange)
-                            
-                            // Check for balls on this platform
+                
+                // Check for balls on this platform
                 var ballsToRemove: [SKShapeNode] = []
-                            for ball in basketballs {
-                                if let ballPhysics = ball.physicsBody,
+                for ball in basketballs {
+                    if let ballPhysics = ball.physicsBody,
                        let platformPhysics = platform.physicsBody {
                         let contactBodies = ballPhysics.allContactedBodies()
                         if contactBodies.contains(platformPhysics) {
@@ -831,10 +843,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 
                 // Remove all affected balls
                 for ball in ballsToRemove {
-                                    ball.removeFromParent()
-                                    if let index = basketballs.firstIndex(of: ball) {
-                                        basketballs.remove(at: index)
-                                    }
+                    ball.removeFromParent()
+                    if let index = basketballs.firstIndex(of: ball) {
+                        basketballs.remove(at: index)
+                    }
                 }
             }
         }
@@ -982,10 +994,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ball.lineWidth = 2  // 1-pixel outline
         ball.name = "ball"
         
-        // Physics for ball
+        // Physics for ball - Updated collision settings
         let physicsBody = SKPhysicsBody(circleOfRadius: 12)
         physicsBody.categoryBitMask = PhysicsCategory.obstacle
-        physicsBody.collisionBitMask = PhysicsCategory.platform | PhysicsCategory.baseline
+        physicsBody.collisionBitMask = PhysicsCategory.platform | PhysicsCategory.baseline | PhysicsCategory.obstacle  // Added obstacle to allow ball-ball collisions
         physicsBody.contactTestBitMask = PhysicsCategory.player | PhysicsCategory.platform
         physicsBody.restitution = 0.5
         physicsBody.friction = 0.2
@@ -1406,6 +1418,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private func drawVectorNumber(_ number: Int, at position: CGPoint) -> SKNode {
         let numberNode = SKNode()
         let digitWidth: CGFloat = 10
+        let digitSpacing: CGFloat = 5  // Add spacing between digits
         let digitHeight: CGFloat = 20
         
         let digitPoints: [[CGPoint]] = [
@@ -1461,10 +1474,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Convert number to string to process each digit
         let digits = String(number).compactMap { Int(String($0)) }
+        var totalWidth: CGFloat = 0  // Track total width for centering
         
-        for (index, digit) in digits.enumerated() {
+        // First calculate total width
+        totalWidth = CGFloat(digits.count) * (digitWidth + digitSpacing) - digitSpacing
+        
+        // Start drawing from the left, accounting for total width
+        var currentX: CGFloat = -totalWidth / 2  // Center the entire number
+        
+        for (_, digit) in digits.enumerated() {
             let digitNode = SKNode()
-            let offsetX = CGFloat(index) * (digitWidth + 5)
             
             for i in stride(from: 0, to: digitPoints[digit].count, by: 2) {
                 let line = SKShapeNode()
@@ -1477,7 +1496,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 digitNode.addChild(line)
             }
             
+            // Position each digit with proper spacing
+            digitNode.position = CGPoint(x: currentX, y: 0)
             numberNode.addChild(digitNode)
+            
+            // Move to next digit position
+            currentX += digitWidth + digitSpacing
         }
         
         numberNode.position = position
