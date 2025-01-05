@@ -1200,6 +1200,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private func gameOver() {
         stopBackgroundMusic()
+        
+        for i in children.indices {
+            let node = children[i]
+            node.alpha = 0.5
+        }
+        
         playSound("gameOver")
         // Remove all existing balls and their spawn indicators
         children.forEach { node in
@@ -1238,6 +1244,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         lives = 5
         score = 0
         currentLevel = 1
+        
     }
     
     // Add helper function to reset limb positions
@@ -1381,6 +1388,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add restart function
     private func restartGame() {
+        
+        for i in children.indices {
+            let node = children[i]
+            node.alpha = 1.0
+        }
+        
         // Remove game over label
         children.filter { $0.name == "gameOverLabel" }.forEach { $0.removeFromParent() }
         
@@ -1401,6 +1414,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add new function for level progression
     private func startNextLevel() {
+        
+        for i in children.indices {
+            let node = children[i]
+            node.alpha = 0.5
+        }
+        
         playSound("levelComplete")
         let levelComplete = SKLabelNode(text: "Level Complete!")
         levelComplete.position = CGPoint(x: size.width/2, y: size.height/2)
