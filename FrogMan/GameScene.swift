@@ -222,44 +222,112 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         "bgMusic": "bgMusic.wav"
     ]
     
-    private var audioPlayers: [String: NSSound] = [:]
+    // Audio properties
+    private lazy var gameAudioEngine: AVAudioEngine = {
+        let engine = AVAudioEngine()
+        return engine
+    }()
+    private var audioPlayers: [String: AVAudioPlayerNode] = [:]
+    private var audioFiles: [String: AVAudioFile] = [:]
+    private var audioBuffers: [String: AVAudioPCMBuffer] = [:]
+    private var mainMixer: AVAudioMixerNode!
     
-    // Replace setupSounds with macOS version
+    // Replace setupSounds with new implementation
     private func setupSounds() {
+        // Initialize audio engine
+        mainMixer = gameAudioEngine.mainMixerNode
+        
         // Load all sounds
         for (key, filename) in soundFiles {
             if let url = Bundle.main.url(forResource: filename.components(separatedBy: ".")[0],
                                        withExtension: filename.components(separatedBy: ".")[1]) {
-                if let sound = NSSound(contentsOf: url, byReference: true) {
-                    // Set background music to loop
-                    if key == "bgMusic" {
-                        sound.loops = true
-                        sound.volume = 0.3
+                do {
+                    // Create audio file
+                    let audioFile = try AVAudioFile(forReading: url)
+                    audioFiles[key] = audioFile
+                    
+                    // Create buffer
+                    guard let buffer = AVAudioPCMBuffer(pcmFormat: audioFile.processingFormat,
+                                                      frameCapacity: AVAudioFrameCount(audioFile.length)) else {
+                        continue
                     }
-                    // Set game over sound volume to 50%
-                    if key == "gameOver" {
-                        sound.volume = 0.5
-                    }
-                    audioPlayers[key] = sound
+                    try audioFile.read(into: buffer)
+                    audioBuffers[key] = buffer
+                    
+                    // Create player node
+                    let player = AVAudioPlayerNode()
+                    gameAudioEngine.attach(player)
+                    
+                    // Connect player to main mixer
+                    gameAudioEngine.connect(player, to: mainMixer, format: buffer.format)
+                    
+                    audioPlayers[key] = player
+                } catch {
+                    print("Error loading sound \(key): \(error)")
                 }
             }
         }
-    }
-    
-    private func playSound(_ key: String) {
-        if let sound = audioPlayers[key] {
-            sound.stop()  // Stop any current playback
-            sound.currentTime = 0  // Reset to beginning
-            // Ensure game over sound maintains 50% volume
-            if key == "gameOver" {
-                sound.volume = 0.1
-            }
-            sound.play()
+        
+        // Start audio engine
+        do {
+            try gameAudioEngine.start()
+        } catch {
+            print("Error starting audio engine: \(error)")
         }
     }
     
+    // Replace playSound with new implementation
+    private func playSound(_ key: String) {
+        guard let player = audioPlayers[key],
+              let buffer = audioBuffers[key] else {
+            return
+        }
+        
+        // Special handling for background music and game over
+        if key == "bgMusic" {
+            player.pan = 0  // Center the background music
+            player.volume = 0.3  // 30% volume
+            player.stop()
+            player.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
+            player.play()
+            return
+        }
+        
+        if key == "gameOver" {
+            player.pan = 0  // Center the game over sound
+            player.volume = 0.5  // 50% volume
+            player.stop()
+            player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+            player.play()
+            return
+        }
+        
+        // Calculate pan based on player position for other sounds
+        if let playerNode = self.player {
+            let screenWidth = size.width
+            let playerX = playerNode.position.x
+            
+            // Calculate pan value between -1 (left) and 1 (right)
+            let pan = (2 * playerX / screenWidth) - 1
+            
+            // Set pan value
+            player.pan = Float(pan)
+            player.volume = 1.0  // Full volume for gameplay sounds
+        }
+        
+        player.stop()
+        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        player.play()
+    }
+    
+    // Replace stopSound with new implementation
     private func stopSound(_ key: String) {
         audioPlayers[key]?.stop()
+    }
+    
+    // Add cleanup method
+    deinit {
+        gameAudioEngine.stop()
     }
     
     private func startBackgroundMusic() {
