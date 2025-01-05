@@ -1223,22 +1223,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Create main container node
         player = SKShapeNode()
         
-        // Vector-style head outline
+        // Vector-style bullfrog head outline
         let headOutline = SKShapeNode()
         let headPath = CGMutablePath()
         let headWidth: CGFloat = 25
         let headHeight: CGFloat = 35  // Keeping original height
         
-        // Create octagonal head shape
+        // Create bullfrog head shape with more rounded top and wider bottom
         let points: [CGPoint] = [
-            CGPoint(x: -headWidth/2, y: -headHeight/4),      // Left middle
-            CGPoint(x: -headWidth/2, y: headHeight/4),       // Left upper middle
-            CGPoint(x: -headWidth/4, y: headHeight/2),       // Left upper corner
-            CGPoint(x: headWidth/4, y: headHeight/2),        // Right upper corner
-            CGPoint(x: headWidth/2, y: headHeight/4),        // Right upper middle
-            CGPoint(x: headWidth/2, y: -headHeight/4),       // Right middle
-            CGPoint(x: headWidth/4, y: -headHeight/2),       // Right lower corner
-            CGPoint(x: -headWidth/4, y: -headHeight/2)       // Left lower corner
+            CGPoint(x: -headWidth/2, y: -headHeight/3),      // Left bottom
+            CGPoint(x: -headWidth/1.8, y: 0),                // Left middle bulge
+            CGPoint(x: -headWidth/2, y: headHeight/4),       // Left upper indent
+            CGPoint(x: -headWidth/3, y: headHeight/2),       // Left upper curve
+            CGPoint(x: 0, y: headHeight/1.8),                // Top middle
+            CGPoint(x: headWidth/3, y: headHeight/2),        // Right upper curve
+            CGPoint(x: headWidth/2, y: headHeight/4),        // Right upper indent
+            CGPoint(x: headWidth/1.8, y: 0),                 // Right middle bulge
+            CGPoint(x: headWidth/2, y: -headHeight/3),       // Right bottom
+            CGPoint(x: headWidth/4, y: -headHeight/2),       // Right lower curve
+            CGPoint(x: -headWidth/4, y: -headHeight/2)       // Left lower curve
         ]
         
         // Draw head outline
@@ -1254,15 +1257,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         headOutline.fillColor = .clear
         player.addChild(headOutline)
         
-        // Vector-style eyes (stop sign shaped)
-        let eyeSize: CGFloat = 8
-        let eyeY = headHeight/6
+        // Vector-style eyes (larger stop sign shaped)
+        let eyeSize: CGFloat = 10  // Increased from 8 to 10
+        let eyeY = headHeight/5    // Adjusted position for bullfrog face
         
         // Function to create stop sign shaped eye
         func createStopSignEye(isLeft: Bool) -> SKShapeNode {
             let eye = SKShapeNode()
             let eyePath = CGMutablePath()
-            let center = CGPoint(x: isLeft ? -headWidth/4 : headWidth/4, y: eyeY)
+            let center = CGPoint(x: isLeft ? -headWidth/3 : headWidth/3, y: eyeY)
             let numSides = 8
             
             // Create octagon points
@@ -1294,17 +1297,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.addChild(leftEye)
         player.addChild(rightEye)
         
-        // Add vector smile (permanent)
+        // Keep existing smile but adjust position
         let expression = SKShapeNode()
         let expressionPath = CGMutablePath()
         let mouthWidth: CGFloat = headWidth/2
-        let mouthY = -headHeight/6
+        let mouthY = -headHeight/4  // Adjusted for bullfrog face
         
-        // Create smile curve - FIXED to be an actual smile
         expressionPath.move(to: CGPoint(x: -mouthWidth/2, y: mouthY))
         expressionPath.addQuadCurve(
             to: CGPoint(x: mouthWidth/2, y: mouthY),
-            control: CGPoint(x: 0, y: mouthY - 5)  // Control point BELOW for smile
+            control: CGPoint(x: 0, y: mouthY - 5)
         )
         
         expression.path = expressionPath
@@ -1619,16 +1621,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let headWidth: CGFloat = 25
         let headHeight: CGFloat = 35
         
-        // Create octagonal head points
+        // Create bullfrog head points (same as setup)
         let points: [CGPoint] = [
-            CGPoint(x: -headWidth/2, y: -headHeight/4),      // Left middle
-            CGPoint(x: -headWidth/2, y: headHeight/4),       // Left upper middle
-            CGPoint(x: -headWidth/4, y: headHeight/2),       // Left upper corner
-            CGPoint(x: headWidth/4, y: headHeight/2),        // Right upper corner
-            CGPoint(x: headWidth/2, y: headHeight/4),        // Right upper middle
-            CGPoint(x: headWidth/2, y: -headHeight/4),       // Right middle
-            CGPoint(x: headWidth/4, y: -headHeight/2),       // Right lower corner
-            CGPoint(x: -headWidth/4, y: -headHeight/2)       // Left lower corner
+            CGPoint(x: -headWidth/2, y: -headHeight/3),      // Left bottom
+            CGPoint(x: -headWidth/1.8, y: 0),                // Left middle bulge
+            CGPoint(x: -headWidth/2, y: headHeight/4),       // Left upper indent
+            CGPoint(x: -headWidth/3, y: headHeight/2),       // Left upper curve
+            CGPoint(x: 0, y: headHeight/1.8),                // Top middle
+            CGPoint(x: headWidth/3, y: headHeight/2),        // Right upper curve
+            CGPoint(x: headWidth/2, y: headHeight/4),        // Right upper indent
+            CGPoint(x: headWidth/1.8, y: 0),                 // Right middle bulge
+            CGPoint(x: headWidth/2, y: -headHeight/3),       // Right bottom
+            CGPoint(x: headWidth/4, y: -headHeight/2),       // Right lower curve
+            CGPoint(x: -headWidth/4, y: -headHeight/2)       // Left lower curve
         ]
         
         // Create individual lines for each segment
@@ -1645,15 +1650,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             headLines.append(line)
         }
         
-        // Create lines for eyes and smile
-        let eyeSize: CGFloat = 8
-        let eyeY = headHeight/6
+        // Create lines for larger eyes
+        let eyeSize: CGFloat = 10
+        let eyeY = headHeight/5
         
         // Left eye
         let leftEye = SKShapeNode(circleOfRadius: eyeSize/2)
         leftEye.strokeColor = .white
         leftEye.lineWidth = 2
-        leftEye.position = CGPoint(x: player.position.x - headWidth/4, y: player.position.y + eyeY)
+        leftEye.position = CGPoint(x: player.position.x - headWidth/3, y: player.position.y + eyeY)
         addChild(leftEye)
         headLines.append(leftEye)
         
@@ -1661,15 +1666,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let rightEye = SKShapeNode(circleOfRadius: eyeSize/2)
         rightEye.strokeColor = .white
         rightEye.lineWidth = 2
-        rightEye.position = CGPoint(x: player.position.x + headWidth/4, y: player.position.y + eyeY)
+        rightEye.position = CGPoint(x: player.position.x + headWidth/3, y: player.position.y + eyeY)
         addChild(rightEye)
         headLines.append(rightEye)
         
-        // Smile
+        // Smile (kept the same)
         let smile = SKShapeNode()
         let smilePath = CGMutablePath()
         let mouthWidth: CGFloat = headWidth/2
-        let mouthY = -headHeight/6
+        let mouthY = -headHeight/4
         smilePath.move(to: CGPoint(x: -mouthWidth/2, y: mouthY))
         smilePath.addQuadCurve(
             to: CGPoint(x: mouthWidth/2, y: mouthY),
