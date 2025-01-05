@@ -63,9 +63,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var isUpPressed = false
     
     // Add color constants at the top
-    private let UNIFORM_BLUE = NSColor(red: 0.0, green: 0.2, blue: 0.6, alpha: 1.0) // Dark blue
-    private let UNIFORM_GOLD = NSColor(red: 0.8, green: 0.7, blue: 0.0, alpha: 1.0) // Athletic gold
-    private let SKIN_COLOR = NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0) // Keep skin tone
+    private let UNIFORM_BROWN = NSColor.brown
     
     // At the top of the class with other constants
     private let platformHeights: [CGFloat] = [0.2, 0.35, 0.5, 0.65, 0.8]
@@ -606,7 +604,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         platform.path = path
         platform.fillColor = .clear
-        platform.strokeColor = UNIFORM_GOLD
+        platform.strokeColor = UNIFORM_BROWN
         platform.lineWidth = 2
 
         // Create physics body from the path
@@ -826,7 +824,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // Initialize platform metadata if it doesn't exist
             if platform.userData == nil {
                 platform.userData = NSMutableDictionary()
-                platform.userData?["state"] = "gold"  // Initial state
+                platform.userData?["state"] = "brown"  // Initial state
                 platform.userData?["scored"] = false
             }
             
@@ -847,16 +845,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     // Check if level is complete
                     checkLevelCompletion()
                 }
-            } else if platform.userData?["state"] as? String == "gold" {
-                // Side collision with gold platform - turn orange
-                platform.strokeColor = .orange
+            } else if platform.userData?["state"] as? String == "brown" {
+                // Side collision with brown platform - turn yellow
+                platform.strokeColor = .yellow
                 platform.fillColor = .clear
                 platform.lineWidth = 2
-                platform.userData?["state"] = "orange"
+                platform.userData?["state"] = "yellow"
                 
-                // Award 5 points for turning platform orange
+                // Award 5 points for turning platform yellow
                 score += 5
-                showScorePopup(amount: 5, at: contact.contactPoint, color: .orange)
+                showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
                 
                 // Check for balls on this platform
                 var ballsToRemove: [SKShapeNode] = []
@@ -1278,23 +1276,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Draw head outline with curved bottom and top
         headPath.move(to: points[0])
         
-        // Draw sides up to the left curve point
-        for i in 1...3 {  // Only draw up to left curve point
-            headPath.addLine(to: points[i])
-        }
-        
-        // Add single curved top line
-        let topControlPoint = CGPoint(x: 0, y: headHeight/1.7 + 2)
-        headPath.addQuadCurve(to: points[5], control: topControlPoint)  // Curve from left to right upper point
-        
-        // Draw remaining sides
-        for i in 6..<points.count {  // Continue from after right curve point
+        // Draw sides and top
+        for i in 1..<points.count {
             headPath.addLine(to: points[i])
         }
         
         // Add curved bottom
-        let bottomControlPoint = CGPoint(x: 0, y: -headHeight/2 - 2)
-        headPath.addQuadCurve(to: points[0], control: bottomControlPoint)
+        let bottomControlPoint = CGPoint(x: 0, y: -headHeight/2 - 2)  // Control point below bottom
+        headPath.addQuadCurve(
+            to: points[0],  // Back to start
+            control: bottomControlPoint
+        )
+        
+        // Add curved top
+        let topControlPoint = CGPoint(x: 0, y: headHeight/1.7 + 2)  // Control point above top
+        headPath.move(to: points[3])  // Move to left upper curve
+        headPath.addQuadCurve(
+            to: points[5],  // To right upper curve
+            control: topControlPoint
+        )
         
         headOutline.path = headPath
         headOutline.strokeColor = .green
@@ -1407,12 +1407,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         leg.addChild(knee)
         
         // Create calf outline - longer and more angled for frog-like appearance
-        
-        
-        
-        
-        
-        
         let calf = SKShapeNode()
         let calfPath = CGMutablePath()
         let calfLength: CGFloat = 25  // Increased length
@@ -1435,6 +1429,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let footLength: CGFloat = 15  // Increased length
         
         // Foot outline points with slight curve for better traction
+        
+        
+        
+        
+        
         footPath.move(to: CGPoint(x: 0, y: 0))
         let footCurve = isLeft ? -footLength : footLength
         footPath.addCurve(to: CGPoint(x: footCurve, y: 0),
