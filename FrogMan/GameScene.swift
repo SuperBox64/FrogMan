@@ -855,6 +855,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         super.update(currentTime)
         updateScoreLevelLives()
         
+        // Track descending state for landing sound
+        if let playerNode = self.player,
+           let velocity = playerNode.physicsBody?.velocity.dy {
+            if hasJumped && velocity < 0 {
+                isDescending = true
+            }
+        }
+        
         // Count current balls and check for off-screen balls
         currentBallCount = basketballs.count
         
@@ -945,35 +953,30 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 }
             }
         }
+        
+        // Check for expired balls
+        let currentTime = Date().timeIntervalSinceReferenceDate
+        var expiredBalls: [SKShapeNode] = []
+        
+        for (ball, creationTime) in ballCreationTimes {
+            if currentTime - creationTime >= ballLifespan {
+                expiredBalls.append(ball)
+            }
+        }
+        
+        // Handle expired balls
+        for ball in expiredBalls {
+            // Create rainbow balloon effect
+            createRainbowBalloon(at: ball.position)
+            
+            // Remove the original ball
+            ballCreationTimes.removeValue(forKey: ball)
+            removeBall(ball)
+        }
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
         let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
-        
-        // Check for ground contact to enable jumping
-        if collision == (PhysicsCategory.player | PhysicsCategory.ground) ||
-           collision == (PhysicsCategory.player | PhysicsCategory.platform) ||
-           collision == (PhysicsCategory.player | PhysicsCategory.baseline) {
-            
-            // Get the player node and its velocity
-            let playerNodes = [contact.bodyA.node, contact.bodyB.node].compactMap { $0 }
-            if let playerNode = playerNodes.first(where: { node in
-                node.physicsBody?.categoryBitMask == PhysicsCategory.player
-            }) {
-                // Now we have a non-optional playerNode
-                if let velocity = playerNode.physicsBody?.velocity.dy {
-                    // Only play landing sound if:
-                    // 1. Player was in the air (isInAir is true)
-                    // 2. Player is moving downward significantly (velocity < -100)
-                    if isInAir && velocity < -100 {
-                        playSound("land")
-                        isInAir = false  // Reset air state
-                    }
-                    
-                    canJump = true
-                }
-            }
-        }
         
         // Get the platform and player from the collision
         let platform = [contact.bodyA.node, contact.bodyB.node].first { node in
@@ -991,7 +994,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let playerPos = player.position
             let platformPos = platform.position
             
-            // Calculate if player is above the platform - use a more generous threshold
+            // Calculate if player is above the platform
             let isAbovePlatform = playerPos.y > platformPos.y + platformHeight/2
             
             // Initialize platform metadata if it doesn't exist
@@ -1001,9 +1004,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 platform.userData?["scored"] = false
             }
             
-            // Check if contact is from above - ALWAYS turn green if from above
-            if isAbovePlatform {  // Simplified check, removed normal.dy threshold
-                // Top collision - always turn green regardless of current state
+            // Get the current state
+            let currentState = platform.userData?["state"] as? String ?? "brown"
+            
+            // If hitting from above, ALWAYS turn green (regardless of current color)
+            if isAbovePlatform && normal.dy < -0.1 {
                 platform.strokeColor = .green
                 platform.fillColor = .clear
                 platform.lineWidth = 2
@@ -1018,51 +1023,51 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     // Check if level is complete
                     checkLevelCompletion()
                 }
-                playSound("platformGreen")  // Platform sound will be positioned based on contact point
-            } else if platform.userData?["state"] as? String == "brown" {
-                // Side collision with brown platform - turn yellow
-                platform.strokeColor = .yellow
-                platform.fillColor = .clear
-                platform.lineWidth = 2
-                platform.userData?["state"] = "yellow"
-                
-                // Award 5 points for turning platform yellow
-                score += 5
-                showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
-                playSound("platformYellow")  // Platform sound will be positioned based on contact point
-                
-                // Check for balls on this platform
-                var ballsToRemove: [SKShapeNode] = []
-                for ball in basketballs {
-                    if let ballPhysics = ball.physicsBody,
-                       let platformPhysics = platform.physicsBody {
-                        let contactBodies = ballPhysics.allContactedBodies()
-                        if contactBodies.contains(platformPhysics) {
-                            // Create implosion effect
-                            createVectorImplosion(at: ball.position)
-                            
-                            // Award 7 points for each ball
-                            score += 7
-                            showScorePopup(amount: 7, at: ball.position, color: .orange)
-                            
-                            ballsToRemove.append(ball)
+                playSound("platformGreen")
+            } 
+            // If hitting from below and platform is brown, turn yellow
+            else if normal.dy > 0.1 {  // Only check normal.dy for bottom hits
+                if currentState == "brown" {
+                    platform.strokeColor = .yellow
+                    platform.fillColor = .clear
+                    platform.lineWidth = 2
+                    platform.userData?["state"] = "yellow"
+                    
+                    // Award 5 points for turning platform yellow
+                    score += 5
+                    showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
+                    playSound("platformYellow")
+                    
+                    // Check for balls on this platform
+                    var ballsToRemove: [SKShapeNode] = []
+                    for ball in basketballs {
+                        if let ballPhysics = ball.physicsBody,
+                           let platformPhysics = platform.physicsBody {
+                            let contactBodies = ballPhysics.allContactedBodies()
+                            if contactBodies.contains(platformPhysics) {
+                                // Create implosion effect
+                                createVectorImplosion(at: ball.position)
+                                
+                                // Award 7 points for each ball
+                                score += 7
+                                showScorePopup(amount: 7, at: ball.position, color: .orange)
+                                
+                                ballsToRemove.append(ball)
+                            }
                         }
                     }
-                }
-                
-                // Remove all affected balls
-                for ball in ballsToRemove {
-                    removeBall(ball)
+                    
+                    // Remove all affected balls
+                    for ball in ballsToRemove {
+                        removeBall(ball)
+                    }
                 }
             }
         }
         
         // Check for player and ball collision
         if collision == (PhysicsCategory.player | PhysicsCategory.obstacle) {
-            // Play death sound with position
-            if let playerNode = [contact.bodyA.node, contact.bodyB.node].first(where: { $0?.physicsBody?.categoryBitMask == PhysicsCategory.player }) {
-                playSound("death")  // Death sound will be positioned based on where player died
-            }
+            playSound("death")
             
             // Decrease life
             lives -= 1
@@ -1085,6 +1090,55 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
             
             run(SKAction.sequence([respawnDelay, respawnAction]))
+        }
+        
+        // Check for ground contact to enable jumping
+        if collision == (PhysicsCategory.player | PhysicsCategory.ground) ||
+           collision == (PhysicsCategory.player | PhysicsCategory.platform) ||
+           collision == (PhysicsCategory.player | PhysicsCategory.baseline) {
+            print("Ground contact detected")
+            canJump = true
+            
+            // Only play landing sound if we were actually jumping and descending
+            if hasJumped && isDescending {
+                playSound("land")
+                hasJumped = false  // Reset jump state
+                isDescending = false  // Reset descending state
+            }
+            
+            // Handle landing animation
+            if let player = playerNode as? SKNode,
+               let leftLeg = player.childNode(withName: "leftLeg"),
+               let rightLeg = player.childNode(withName: "rightLeg") {
+                
+                // Kill any existing animations
+                leftLeg.removeAllActions()
+                rightLeg.removeAllActions()
+                
+                // Simple landing sequence with shorter legs (0.5 scale)
+                let landSequence = SKAction.sequence([
+                    // 1. Quick spread with short legs (0.5 scale)
+                        SKAction.run {
+                        // Scale to half size for landing
+                        leftLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
+                        rightLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
+                        // Spread legs slightly
+                        leftLeg.run(SKAction.rotate(toAngle: -.pi/4, duration: 0.1))
+                        rightLeg.run(SKAction.rotate(toAngle: .pi/4, duration: 0.1))
+                    },
+                    
+                    SKAction.wait(forDuration: 0.1),
+                    
+                    // 2. Remove legs
+                    SKAction.run {
+                        leftLeg.removeFromParent()
+                        rightLeg.removeFromParent()
+                    }
+                ])
+                
+                leftLeg.run(landSequence)
+                rightLeg.run(landSequence)
+            }
         }
     }
     
@@ -1220,6 +1274,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Initialize ring state
         ball.userData = ["ringTouched": false]
         
+        // Add creation timestamp
+        ballCreationTimes[ball] = Date().timeIntervalSinceReferenceDate
+        
         return ball
     }
     
@@ -1317,7 +1374,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private func handleJump() {
         if canJump {
-            isInAir = true  // Set to true when jumping
+            hasJumped = true
+            isDescending = false
             playSound("jump")
             print("Attempting jump")
             player.physicsBody?.velocity.dy = 0
@@ -2015,8 +2073,67 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             currentBallCount -= 1
         }
     }
-
-    // Add property at top of class to track if player is in the air
-    private var isInAir = false
+    
+    // Add at top of class with other properties
+    private var hasJumped = false
+    private var isDescending = false
+    
+    // Add at top of class with other properties
+    private let ballLifespan: TimeInterval = 10.0  // 10 seconds
+    private var ballCreationTimes: [SKShapeNode: TimeInterval] = [:]
+    
+    // Add rainbow balloon effect function
+    private func createRainbowBalloon(at position: CGPoint) {
+        // Create balloon circle (slightly larger than original ball)
+        let balloon = SKShapeNode(circleOfRadius: 15)  // Reduced from 24 to 15
+        balloon.position = position
+        balloon.lineWidth = 2
+        balloon.strokeColor = .clear  // Start clear, will be colored by action immediately
+        addChild(balloon)
+        
+        // Create squiggly string path starting from bottom of balloon
+        let string = SKShapeNode()
+        let stringPath = CGMutablePath()
+        let startY = position.y - balloon.frame.height/2  // Start at bottom of balloon
+        let amplitude: CGFloat = 5  // Reduced wave amplitude
+        let frequency: CGFloat = 0.3  // Increased frequency for more waves
+        
+        stringPath.move(to: CGPoint(x: position.x, y: startY))
+        for i in 0...15 {  // Reduced length
+            let y = startY - CGFloat(i) * 2
+            let x = position.x + sin(CGFloat(i) * frequency) * amplitude
+            stringPath.addLine(to: CGPoint(x: x, y: y))
+        }
+        
+        string.path = stringPath
+        string.lineWidth = 2
+        string.strokeColor = .clear  // Start clear, will be colored by action immediately
+        addChild(string)
+        
+        // Create rainbow shimmer effect with faster transitions
+        let rainbowColors: [NSColor] = [.red, .orange, .yellow, .green, .blue, .purple]
+        var colorActions: [SKAction] = []
+        
+        for color in rainbowColors {
+            let colorize = SKAction.colorize(with: color, colorBlendFactor: 1.0, duration: 0.15)
+            colorActions.append(colorize)
+        }
+        
+        let rainbowSequence = SKAction.sequence(colorActions)
+        let repeatRainbow = SKAction.repeatForever(rainbowSequence)
+        
+        // Start the rainbow effect immediately
+        balloon.run(repeatRainbow)
+        string.run(repeatRainbow)
+        
+        // Create floating animation
+        let floatUp = SKAction.moveBy(x: 0, y: 150, duration: 2.0)
+        let fade = SKAction.fadeOut(withDuration: 2.0)
+        let group = SKAction.group([floatUp, fade])
+        let remove = SKAction.removeFromParent()
+        
+        balloon.run(SKAction.sequence([group, remove]))
+        string.run(SKAction.sequence([group, remove]))
+    }
 }
 
