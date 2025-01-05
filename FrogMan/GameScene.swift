@@ -302,17 +302,27 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             return
         }
         
-        // Calculate pan based on player position for other sounds
+        // Calculate pan and volume based on player position relative to screen center
         if let playerNode = self.player {
-            let screenWidth = size.width
+            let screenCenter = CGPoint(x: size.width / 2, y: size.height / 2)
             let playerX = playerNode.position.x
+            let playerY = playerNode.position.y
             
-            // Calculate pan value between -1 (left) and 1 (right)
-            let pan = (2 * playerX / screenWidth) - 1
+            // Calculate horizontal position relative to center (-1 to 1)
+            let normalizedX = (playerX - screenCenter.x) / (size.width / 2)
             
-            // Set pan value
-            player.pan = Float(pan)
-            player.volume = 1.0  // Full volume for gameplay sounds
+            // Calculate vertical position relative to center (-1 to 1)
+            let normalizedY = (playerY - screenCenter.y) / (size.height / 2)
+            
+            // Pan calculation (left to right)
+            player.pan = Float(max(-1, min(1, normalizedX)))
+            
+            // Volume calculation based on vertical position
+            // Center is full volume, edges are quieter
+            let distanceFromCenter = abs(normalizedY)
+            let baseVolume: Float = 1.0
+            let volumeAttenuation = Float(distanceFromCenter) * 0.5  // 50% reduction at edges
+            player.volume = baseVolume - volumeAttenuation
         }
         
         player.stop()
@@ -940,6 +950,31 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func didBegin(_ contact: SKPhysicsContact) {
         let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
         
+        // Check for ground contact to enable jumping
+        if collision == (PhysicsCategory.player | PhysicsCategory.ground) ||
+           collision == (PhysicsCategory.player | PhysicsCategory.platform) ||
+           collision == (PhysicsCategory.player | PhysicsCategory.baseline) {
+            
+            // Get the player node and its velocity
+            let playerNodes = [contact.bodyA.node, contact.bodyB.node].compactMap { $0 }
+            if let playerNode = playerNodes.first(where: { node in
+                node.physicsBody?.categoryBitMask == PhysicsCategory.player
+            }) {
+                // Now we have a non-optional playerNode
+                if let velocity = playerNode.physicsBody?.velocity.dy {
+                    // Only play landing sound if:
+                    // 1. Player was in the air (isInAir is true)
+                    // 2. Player is moving downward significantly (velocity < -100)
+                    if isInAir && velocity < -100 {
+                        playSound("land")
+                        isInAir = false  // Reset air state
+                    }
+                    
+                    canJump = true
+                }
+            }
+        }
+        
         // Get the platform and player from the collision
         let platform = [contact.bodyA.node, contact.bodyB.node].first { node in
             node?.physicsBody?.categoryBitMask == PhysicsCategory.platform
@@ -983,7 +1018,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     // Check if level is complete
                     checkLevelCompletion()
                 }
-                playSound("platformGreen")
+                playSound("platformGreen")  // Platform sound will be positioned based on contact point
             } else if platform.userData?["state"] as? String == "brown" {
                 // Side collision with brown platform - turn yellow
                 platform.strokeColor = .yellow
@@ -994,7 +1029,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 // Award 5 points for turning platform yellow
                 score += 5
                 showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
-                playSound("platformYellow")
+                playSound("platformYellow")  // Platform sound will be positioned based on contact point
                 
                 // Check for balls on this platform
                 var ballsToRemove: [SKShapeNode] = []
@@ -1024,8 +1059,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Check for player and ball collision
         if collision == (PhysicsCategory.player | PhysicsCategory.obstacle) {
-            // Play death sound immediately
-            playSound("death")
+            // Play death sound with position
+            if let playerNode = [contact.bodyA.node, contact.bodyB.node].first(where: { $0?.physicsBody?.categoryBitMask == PhysicsCategory.player }) {
+                playSound("death")  // Death sound will be positioned based on where player died
+            }
             
             // Decrease life
             lives -= 1
@@ -1048,53 +1085,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
             
             run(SKAction.sequence([respawnDelay, respawnAction]))
-        }
-        
-        // Check for ground contact to enable jumping
-        if collision == (PhysicsCategory.player | PhysicsCategory.ground) ||
-           collision == (PhysicsCategory.player | PhysicsCategory.platform) ||
-           collision == (PhysicsCategory.player | PhysicsCategory.baseline) {
-            print("Ground contact detected")
-            canJump = true
-            
-            // Get the player node from collision
-            let playerNode = [contact.bodyA.node, contact.bodyB.node].first { node in
-                node?.physicsBody?.categoryBitMask == PhysicsCategory.player
-            }
-            
-            // Handle landing animation
-            if let player = playerNode,
-               let leftLeg = player?.childNode(withName: "leftLeg"),
-               let rightLeg = player?.childNode(withName: "rightLeg") {
-                
-                // Kill any existing animations
-                leftLeg.removeAllActions()
-                rightLeg.removeAllActions()
-                
-                // Simple landing sequence with shorter legs (0.5 scale)
-                let landSequence = SKAction.sequence([
-                    // 1. Quick spread with short legs (0.5 scale)
-                        SKAction.run {
-                        // Scale to half size for landing
-                        leftLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
-                        rightLeg.run(SKAction.scale(to: 0.5, duration: 0.1))
-                        // Spread legs slightly
-                        leftLeg.run(SKAction.rotate(toAngle: -.pi/4, duration: 0.1))
-                        rightLeg.run(SKAction.rotate(toAngle: .pi/4, duration: 0.1))
-                    },
-                    
-                    SKAction.wait(forDuration: 0.1),
-                    
-                    // 2. Remove legs
-                    SKAction.run {
-                        leftLeg.removeFromParent()
-                        rightLeg.removeFromParent()
-                    }
-                ])
-                
-                leftLeg.run(landSequence)
-                rightLeg.run(landSequence)
-            }
         }
     }
     
@@ -1327,6 +1317,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private func handleJump() {
         if canJump {
+            isInAir = true  // Set to true when jumping
             playSound("jump")
             print("Attempting jump")
             player.physicsBody?.velocity.dy = 0
@@ -2024,5 +2015,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             currentBallCount -= 1
         }
     }
+
+    // Add property at top of class to track if player is in the air
+    private var isInAir = false
 }
 
