@@ -22,6 +22,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         static let ringLeft  : UInt32 = 0b100000
         static let ringRight : UInt32 = 0b1000000
         static let rainbow : UInt32 = 0b10000000
+        static let killLine  : UInt32 = 0b100000000  // Add new category
     }
     
     // Player dimensions
@@ -1153,41 +1154,46 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 // Only process if it's the balloon (not the string)
                 if balloon.name == "rainbowBalloon" {
                     if !hasExtraLifeForLevel && lives < 6 {
-                        // First rainbow balloon touch this level and under 6 lives
+                        // First rainbow balloon touch this level and under 6 lives (100 points)
                         score += 100
                         lives += 1
                         hasExtraLifeForLevel = true
                         showScorePopup(amount: 100, at: balloon.position, color: .green)
+                        
+                        // Create large rainbow fireworks effect
+                        createRainbowFireworks(at: balloon.position)
                     } else {
-                        // Subsequent touches or already at max lives
+                        // Subsequent touches or already at max lives (50 points)
                         score += 50
                         showScorePopup(amount: 50, at: balloon.position, color: .green)
+                    
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        // Create shimmer effect
+                        createShimmerEffect(at: balloon.position)
                     }
                     
                     playSound("score")
-                    
-                    // Find only the string segments associated with this specific balloon
-                    let stringSegments = children.filter { node in
-                        if let segment = node as? SKShapeNode,
-                           segment.name != "rainbowBalloon" && segment != player {  // Explicitly exclude player
-                            // Check if segment is near THIS balloon's position
-                            let distance = hypot(segment.position.x - balloon.position.x,
-                                              segment.position.y - balloon.position.y)
-                            return distance < 100  // Within reasonable distance
-                        }
-                        return false
-                    }
-                    
-                    // Fade out ONLY the balloon and its string segments
-                    let fadeOut = SKAction.fadeOut(withDuration: 0.3)
-                    let remove = SKAction.removeFromParent()
-                    
-                    balloon.run(SKAction.sequence([fadeOut, remove]))
-                    
-                    for segment in stringSegments {
-                        segment.run(SKAction.sequence([fadeOut, remove]))
-                    }
+                    balloon.removeFromParent()
                 }
+            }
+        }
+
+        // Check for ball hitting kill line
+        if collision == (PhysicsCategory.killLine | PhysicsCategory.obstacle) {
+            let ball = (contact.bodyA.categoryBitMask == PhysicsCategory.obstacle) ? contact.bodyA.node : contact.bodyB.node
+            if let ballNode = ball as? SKShapeNode {
+                removeBall(ballNode)
             }
         }
     }
@@ -1701,7 +1707,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private func showScorePopup(amount: Int, at position: CGPoint, color: NSColor) {
         playSound("score")
         // Create vector number for the score popup
-        let scorePopup = drawVectorNumber(amount, at: position)
+        let scorePopup = drawVectorNumber(amount, at: position, isRainbow: amount == 50 || amount == 100)  // Add rainbow parameter
         scorePopup.position = CGPoint(x: position.x, y: position.y + 20)
         addChild(scorePopup)
         
@@ -1711,7 +1717,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scorePopup.run(SKAction.sequence([SKAction.group([moveUp, fadeOut]), remove]))
     }
     
-    private func drawVectorNumber(_ number: Int, at position: CGPoint) -> SKNode {
+    private func drawVectorNumber(_ number: Int, at position: CGPoint, isRainbow: Bool = false) -> SKNode {
         let numberNode = SKNode()
         let digitWidth: CGFloat = 10
         let digitSpacing: CGFloat = 5  // Add spacing between digits
@@ -1778,7 +1784,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Start drawing from the left, accounting for total width
         var currentX: CGFloat = -totalWidth / 2  // Center the entire number
         
-        for (_, digit) in digits.enumerated() {
+        for (index, digit) in digits.enumerated() {
             let digitNode = SKNode()
             
             for i in stride(from: 0, to: digitPoints[digit].count, by: 2) {
@@ -1787,7 +1793,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 path.move(to: digitPoints[digit][i])
                 path.addLine(to: digitPoints[digit][i + 1])
                 line.path = path
-                line.strokeColor = .green
+                
+                if isRainbow {
+                    // Calculate hue based on both digit position and line position
+                    let hue = (CGFloat(index) + CGFloat(i) / CGFloat(digitPoints[digit].count)) / CGFloat(digits.count)
+                    line.strokeColor = NSColor(hue: hue, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+                } else {
+                    line.strokeColor = .green
+                }
+                
                 line.lineWidth = 2
                 digitNode.addChild(line)
             }
@@ -2076,6 +2090,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add this function to create baseline and death zones
     private func createBaselineWithDeathZones() {
+        // Create kill line 20 pixels below screen
+        let killLine = SKNode()
+        let killLineBody = SKPhysicsBody(edgeFrom: CGPoint(x: -50, y: -20),
+                                       to: CGPoint(x: size.width + 50, y: -20))
+        killLine.physicsBody = killLineBody
+        killLine.physicsBody?.categoryBitMask = PhysicsCategory.killLine
+        killLine.physicsBody?.contactTestBitMask = PhysicsCategory.obstacle
+        killLine.physicsBody?.collisionBitMask = 0
+        addChild(killLine)
+
         // Create green baseline 1px up from bottom
         let baseline = SKShapeNode()
         let baselinePath = CGMutablePath()
@@ -2117,11 +2141,26 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Update ball removal to maintain accurate count
     private func removeBall(_ ball: SKShapeNode) {
+        // Remove all actions from the ball and its children
+        ball.removeAllActions()
+        ball.children.forEach { child in
+            child.removeAllActions()
+            if let container = child as? SKNode {
+                container.children.forEach { grandChild in
+                    grandChild.removeAllActions()
+                }
+            }
+        }
+        
+        // Remove the ball from the scene and arrays
         ball.removeFromParent()
         if let index = basketballs.firstIndex(of: ball) {
             basketballs.remove(at: index)
             currentBallCount -= 1
         }
+        
+        // Remove from creation times tracking
+        ballCreationTimes.removeValue(forKey: ball)
     }
     
     // Add at top of class with other properties
@@ -2230,6 +2269,185 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ])
         let remove = SKAction.removeFromParent()
         balloon.run(SKAction.sequence([group, remove]))
+    }
+    
+    // Add new function for rainbow fireworks
+    private func createRainbowFireworks(at position: CGPoint) {
+        let numParticles = 60  // More particles for denser effect
+        let minRadius: CGFloat = 30  // Shorter minimum distance
+        let maxRadius: CGFloat = 80  // Shorter maximum distance for tighter effect
+        
+        for i in 0..<numParticles {
+            // Create multiple lines with random angles and lengths
+            let randomAngle = CGFloat.random(in: 0...(2 * .pi))
+            let randomRadius = CGFloat.random(in: minRadius...maxRadius)
+            
+            // Create sparkler line
+            let line = SKShapeNode()
+            let path = CGMutablePath()
+            
+            // Start at center
+            path.move(to: .zero)
+            
+            // End point with slight variation for natural look
+            let endPoint = CGPoint(
+                x: cos(randomAngle) * randomRadius + CGFloat.random(in: -5...5),
+                y: sin(randomAngle) * randomRadius + CGFloat.random(in: -5...5)
+            )
+            path.addLine(to: endPoint)
+            
+            line.path = path
+            line.strokeColor = NSColor(
+                hue: CGFloat.random(in: 0...1),  // Random rainbow colors
+                saturation: 1.0,
+                brightness: 1.0,
+                alpha: 1.0
+            )
+            line.lineWidth = CGFloat.random(in: 1...2)  // Thinner lines for sparkler effect
+            line.position = position
+            addChild(line)
+            
+            // Faster animation for sparkler feel
+            let duration = CGFloat.random(in: 0.2...0.4)  // Faster duration
+            let moveAction = SKAction.scale(by: CGFloat.random(in: 1.1...1.3), duration: duration)
+            let fadeAction = SKAction.fadeOut(withDuration: duration)
+            
+            // Add slight rotation for sparkle effect
+            let rotateAction = SKAction.rotate(byAngle: CGFloat.random(in: -0.3...0.3), duration: duration)
+            
+            let group = SKAction.group([moveAction, fadeAction, rotateAction])
+            let remove = SKAction.removeFromParent()
+            
+            // Minimal random delay for more instant effect
+            let delay = SKAction.wait(forDuration: Double.random(in: 0...0.05))
+            line.run(SKAction.sequence([delay, group, remove]))
+        }
+        
+        // Add a smaller, brighter flash at the center
+        let flash = SKShapeNode(circleOfRadius: 10)
+        flash.fillColor = .white
+        flash.strokeColor = .clear
+        flash.position = position
+        flash.alpha = 0.9
+        addChild(flash)
+        
+        let flashFade = SKAction.fadeOut(withDuration: 0.1)
+        let removeFlash = SKAction.removeFromParent()
+        flash.run(SKAction.sequence([flashFade, removeFlash]))
+    }
+    
+    // Add new function for shimmer effect
+    private func createShimmerEffect(at position: CGPoint) {
+        let numParticles = 12
+        let radius: CGFloat = 30
+        
+        // Main shimmer lines
+        for i in 0..<numParticles {
+            let angle = (CGFloat(i) / CGFloat(numParticles)) * CGFloat.pi * 2
+            let startPoint = CGPoint(
+                x: position.x + cos(angle) * radius,
+                y: position.y + sin(angle) * radius
+            )
+            
+            // Create shimmering line
+            let line = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: startPoint)
+            
+            // Create a curved path outward
+            let endPoint = CGPoint(
+                x: position.x + cos(angle) * radius * 2,
+                y: position.y + sin(angle) * radius * 2
+            )
+            let controlPoint = CGPoint(
+                x: position.x + cos(angle + 0.5) * radius * 1.5,
+                y: position.y + sin(angle + 0.5) * radius * 1.5
+            )
+            
+            path.addQuadCurve(to: endPoint, control: controlPoint)
+            
+            line.path = path
+            line.strokeColor = NSColor(
+                hue: CGFloat(i) / CGFloat(numParticles),
+                saturation: 1.0,
+                brightness: 1.0,
+                alpha: 1.0
+            )
+            line.lineWidth = 2
+            addChild(line)
+            
+            // Animate with fade and move
+            let fadeAction = SKAction.fadeOut(withDuration: 0.3)
+            let moveAction = SKAction.moveBy(x: cos(angle) * 20, y: sin(angle) * 20, duration: 0.3)
+            let group = SKAction.group([fadeAction, moveAction])
+            let remove = SKAction.removeFromParent()
+            
+            line.run(SKAction.sequence([group, remove]))
+            
+            // Add crackling particles at the end of each line
+            createCrackles(at: endPoint, angle: angle)
+        }
+    }
+    
+    private func createCrackles(at position: CGPoint, angle: CGFloat) {
+        let numCrackles = 3
+        let crackleLength: CGFloat = 8
+        
+        for _ in 0..<numCrackles {
+            let crackle = SKShapeNode()
+            let path = CGMutablePath()
+            
+            // Start at the given position
+            path.move(to: .zero)
+            
+            // Create a zigzag pattern
+            var currentPoint = CGPoint.zero
+            let numZigs = 3
+            
+            for i in 0..<numZigs {
+                let zigAngle = angle + CGFloat.random(in: -0.5...0.5)
+                let zagAngle = angle + CGFloat.random(in: -0.5...0.5)
+                
+                // Zig
+                let zigEnd = CGPoint(
+                    x: currentPoint.x + cos(zigAngle) * crackleLength/CGFloat(numZigs),
+                    y: currentPoint.y + sin(zigAngle) * crackleLength/CGFloat(numZigs)
+                )
+                path.addLine(to: zigEnd)
+                currentPoint = zigEnd
+                
+                // Zag
+                let zagEnd = CGPoint(
+                    x: currentPoint.x + cos(zagAngle) * crackleLength/CGFloat(numZigs),
+                    y: currentPoint.y + sin(zagAngle) * crackleLength/CGFloat(numZigs)
+                )
+                path.addLine(to: zagEnd)  // Fixed typo here
+                currentPoint = zagEnd  // Fixed typo here
+            }
+            
+            crackle.path = path
+            crackle.strokeColor = NSColor(
+                hue: CGFloat.random(in: 0...1),
+                saturation: 1.0,
+                brightness: 1.0,
+                alpha: 1.0
+            )
+            crackle.lineWidth = 1
+            crackle.position = position
+            addChild(crackle)
+            
+            // Animate crackles
+            let duration = CGFloat.random(in: 0.1...0.2)
+            let fadeAction = SKAction.fadeOut(withDuration: duration)
+            let scaleAction = SKAction.scale(by: 0.5, duration: duration)
+            let rotateAction = SKAction.rotate(byAngle: CGFloat.random(in: -0.3...0.3), duration: duration)
+            let group = SKAction.group([fadeAction, scaleAction, rotateAction])
+            let remove = SKAction.removeFromParent()
+            
+            // Add slight random delay
+            let delay = SKAction.wait(forDuration: Double.random(in: 0...0.1))
+            crackle.run(SKAction.sequence([delay, group, remove]))
+        }
     }
 }
 
