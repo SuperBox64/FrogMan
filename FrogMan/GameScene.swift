@@ -21,6 +21,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         static let ground    : UInt32 = 0b10000
         static let ringLeft  : UInt32 = 0b100000
         static let ringRight : UInt32 = 0b1000000
+        static let rainbow : UInt32 = 0b10000000
     }
     
     // Player dimensions
@@ -423,6 +424,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add this function to handle common setup
     private func setupLevel() {
+        // Reset extra life flag for new level
+        hasExtraLifeForLevel = false
+        
         // Get player's current position if they exist
         let safeZone = CGRect(
             x: player?.position.x ?? 0 - playerSize.width,
@@ -1138,6 +1142,52 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 
                 leftLeg.run(landSequence)
                 rightLeg.run(landSequence)
+            }
+        }
+        
+        // Check for rainbow balloon collision
+        if contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask == (PhysicsCategory.player | PhysicsCategory.rainbow) {
+            let rainbowNode = (contact.bodyA.categoryBitMask == PhysicsCategory.rainbow) ? contact.bodyA.node : contact.bodyB.node
+            
+            if let balloon = rainbowNode as? SKShapeNode {
+                // Only process if it's the balloon (not the string)
+                if balloon.name == "rainbowBalloon" {
+                    if !hasExtraLifeForLevel && lives < 6 {
+                        // First rainbow balloon touch this level and under 6 lives
+                        score += 100
+                        lives += 1
+                        hasExtraLifeForLevel = true
+                        showScorePopup(amount: 100, at: balloon.position, color: .green)
+                    } else {
+                        // Subsequent touches or already at max lives
+                        score += 50
+                        showScorePopup(amount: 50, at: balloon.position, color: .green)
+                    }
+                    
+                    playSound("score")
+                    
+                    // Find only the string segments associated with this specific balloon
+                    let stringSegments = children.filter { node in
+                        if let segment = node as? SKShapeNode,
+                           segment.name != "rainbowBalloon" && segment != player {  // Explicitly exclude player
+                            // Check if segment is near THIS balloon's position
+                            let distance = hypot(segment.position.x - balloon.position.x,
+                                              segment.position.y - balloon.position.y)
+                            return distance < 100  // Within reasonable distance
+                        }
+                        return false
+                    }
+                    
+                    // Fade out ONLY the balloon and its string segments
+                    let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+                    let remove = SKAction.removeFromParent()
+                    
+                    balloon.run(SKAction.sequence([fadeOut, remove]))
+                    
+                    for segment in stringSegments {
+                        segment.run(SKAction.sequence([fadeOut, remove]))
+                    }
+                }
             }
         }
     }
@@ -2082,58 +2132,104 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let ballLifespan: TimeInterval = 10.0  // 10 seconds
     private var ballCreationTimes: [SKShapeNode: TimeInterval] = [:]
     
-    // Add rainbow balloon effect function
+    // Add at top of class with other properties
+    private var hasExtraLifeForLevel = false  // Track if player got extra life this level
+    
+    // Update createRainbowBalloon function
     private func createRainbowBalloon(at position: CGPoint) {
         // Create balloon circle (slightly larger than original ball)
-        let balloon = SKShapeNode(circleOfRadius: 15)  // Reduced from 24 to 15
+        let balloon = SKShapeNode(circleOfRadius: 15)
         balloon.position = position
         balloon.lineWidth = 2
-        balloon.strokeColor = .clear  // Start clear, will be colored by action immediately
+        balloon.name = "rainbowBalloon"
+        
+        // Create rainbow gradient for the stroke
+        let numSegments = 36  // More segments for smoother gradient
+        let radius: CGFloat = 15
+        
+        // Create a circle made of small line segments
+        for i in 0...numSegments {
+            let angle = (CGFloat(i) / CGFloat(numSegments)) * CGFloat.pi * 2
+            let point = CGPoint(
+                x: cos(angle) * radius,
+                y: sin(angle) * radius
+            )
+            
+            // Create small line segment with color based on angle
+            let segment = SKShapeNode()
+            let segmentPath = CGMutablePath()
+            let nextAngle = (CGFloat(i + 1) / CGFloat(numSegments)) * CGFloat.pi * 2
+            let nextPoint = CGPoint(
+                x: cos(nextAngle) * radius,
+                y: sin(nextAngle) * radius
+            )
+            
+            segmentPath.move(to: point)
+            segmentPath.addLine(to: nextPoint)
+            segment.path = segmentPath
+            segment.lineWidth = 2
+            
+            // Calculate color based on position in circle
+            let hue = CGFloat(i) / CGFloat(numSegments)
+            segment.strokeColor = NSColor(hue: hue, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+            balloon.addChild(segment)
+        }
+        
+        // Create string container to hold all string segments
+        let stringContainer = SKNode()
+        stringContainer.name = "stringContainer"
+        balloon.addChild(stringContainer)
+        
+        // Create squiggly string with rainbow gradient
+        let startY = -balloon.frame.height/2  // Start from bottom of balloon
+        let amplitude: CGFloat = 5
+        let frequency: CGFloat = 0.3
+        let numPoints = 16
+        
+        // Create points for the squiggly line
+        var points: [CGPoint] = []
+        for i in 0..<numPoints {
+            let y = startY - CGFloat(i) * 2
+            let x = sin(CGFloat(i) * frequency) * amplitude
+            points.append(CGPoint(x: x, y: y))
+        }
+        
+        // Create gradient segments for the string
+        for i in 0..<points.count-1 {
+            let segment = SKShapeNode()
+            let segmentPath = CGMutablePath()
+            segmentPath.move(to: points[i])
+            segmentPath.addLine(to: points[i + 1])
+            segment.path = segmentPath
+            segment.lineWidth = 2
+            
+            // Calculate color based on position in string
+            let hue = CGFloat(i) / CGFloat(points.count - 1)
+            segment.strokeColor = NSColor(hue: hue, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+            stringContainer.addChild(segment)  // Add to string container
+        }
+        
+        // Add physics body for collision detection
+        balloon.physicsBody = SKPhysicsBody(circleOfRadius: 15)
+        balloon.physicsBody?.categoryBitMask = PhysicsCategory.rainbow
+        balloon.physicsBody?.contactTestBitMask = PhysicsCategory.player
+        balloon.physicsBody?.collisionBitMask = 0
+        balloon.physicsBody?.isDynamic = false
+        
         addChild(balloon)
         
-        // Create squiggly string path starting from bottom of balloon
-        let string = SKShapeNode()
-        let stringPath = CGMutablePath()
-        let startY = position.y - balloon.frame.height/2  // Start at bottom of balloon
-        let amplitude: CGFloat = 5  // Reduced wave amplitude
-        let frequency: CGFloat = 0.3  // Increased frequency for more waves
-        
-        stringPath.move(to: CGPoint(x: position.x, y: startY))
-        for i in 0...15 {  // Reduced length
-            let y = startY - CGFloat(i) * 2
-            let x = position.x + sin(CGFloat(i) * frequency) * amplitude
-            stringPath.addLine(to: CGPoint(x: x, y: y))
-        }
-        
-        string.path = stringPath
-        string.lineWidth = 2
-        string.strokeColor = .clear  // Start clear, will be colored by action immediately
-        addChild(string)
-        
-        // Create rainbow shimmer effect with faster transitions
-        let rainbowColors: [NSColor] = [.red, .orange, .yellow, .green, .blue, .purple]
-        var colorActions: [SKAction] = []
-        
-        for color in rainbowColors {
-            let colorize = SKAction.colorize(with: color, colorBlendFactor: 1.0, duration: 0.15)
-            colorActions.append(colorize)
-        }
-        
-        let rainbowSequence = SKAction.sequence(colorActions)
-        let repeatRainbow = SKAction.repeatForever(rainbowSequence)
-        
-        // Start the rainbow effect immediately
-        balloon.run(repeatRainbow)
-        string.run(repeatRainbow)
-        
-        // Create floating animation
-        let floatUp = SKAction.moveBy(x: 0, y: 150, duration: 2.0)
-        let fade = SKAction.fadeOut(withDuration: 2.0)
-        let group = SKAction.group([floatUp, fade])
+        // Create floating animation for balloon (string will move with it since it's a child)
+        let floatUp = SKAction.moveBy(x: 0, y: 150, duration: 4.0)  // Changed to 4.0 seconds
+        let fade = SKAction.fadeOut(withDuration: 1.0)
+        let group = SKAction.group([
+            SKAction.sequence([
+                SKAction.wait(forDuration: 3.0),  // Wait longer before fade (3 seconds)
+                fade
+            ]),
+            floatUp
+        ])
         let remove = SKAction.removeFromParent()
-        
         balloon.run(SKAction.sequence([group, remove]))
-        string.run(SKAction.sequence([group, remove]))
     }
 }
 
