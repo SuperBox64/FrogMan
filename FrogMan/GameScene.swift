@@ -202,6 +202,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let SPAWN_COOLDOWN_TIME: TimeInterval = 2.0  // Time before location can be reused
     private var recentSpawnLocations: [(point: CGPoint, timestamp: TimeInterval)] = []
     
+    // Add at top of class with other properties
+    private let MAX_BALLS = 6
+    private var currentBallCount = 0
+    
     override func sceneDidLoad() {
         super.sceneDidLoad()
         
@@ -366,6 +370,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // New function to handle ball replacement with delay
     private func spawnReplacementBall() {
         if isSpawningBall { return }  // Only prevent multiple spawn sequences
+        if currentBallCount >= MAX_BALLS { return }  // Don't spawn if at max
         
         isSpawningBall = true
         
@@ -376,6 +381,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let waitAction = SKAction.wait(forDuration: randomDelay)
         let spawnAction = SKAction.run { [weak self] in
             guard let self = self else { return }
+            
+            // Double check we still need a ball
+            if self.currentBallCount >= MAX_BALLS {
+                self.isSpawningBall = false
+                return
+            }
             
             let randomX = CGFloat.random(in: size.width * 0.1...size.width * 0.9)
             
@@ -390,29 +401,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             // Changed from 3 seconds to 1 second wait time
             let spawnBallAction = SKAction.sequence([
-                SKAction.wait(forDuration: 1.0),  // Changed from 3.0 to 1.0
+                SKAction.wait(forDuration: 1.0),
                 SKAction.run {
-                    // Create new ball at the EXACT indicator position
-                    let newBasketball = self.createBasketball()
-                    newBasketball.position = spawnLine.position  // Use indicator position directly
-                    self.addChild(newBasketball)
-                    self.basketballs.append(newBasketball)
-                    
-                    // Record spawn location
-                    self.recentSpawnLocations.append((
-                        point: spawnLine.position,
-                        timestamp: Date().timeIntervalSince1970
-                    ))
-                    
-                    spawnLine.removeFromParent()  // Remove the indicator after ball spawns
+                    // Final check before spawning
+                    if self.currentBallCount < self.MAX_BALLS {
+                        // Create new ball at the EXACT indicator position
+                        let newBasketball = self.createBasketball()
+                        newBasketball.position = spawnLine.position
+                        self.addChild(newBasketball)
+                        self.basketballs.append(newBasketball)
+                        self.currentBallCount += 1
+                        
+                        // Record spawn location
+                        self.recentSpawnLocations.append((
+                            point: spawnLine.position,
+                            timestamp: Date().timeIntervalSince1970
+                        ))
+                    }
+                    spawnLine.removeFromParent()
                 }
             ])
             spawnLine.run(spawnBallAction)
             
-            isSpawningBall = false  // Reset the spawning flag
-            
-            // Immediately queue up the next spawn sequence
-            self.spawnReplacementBall()
+            isSpawningBall = false
         }
         
         self.run(SKAction.sequence([waitAction, spawnAction]))
@@ -490,10 +501,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             0.8   // Top platform
         ]
         
-        // Create array of required hole counts to ensure variety
-        var holeCounts = [2, 3, 4]  // Guaranteed numbers
-        holeCounts.append(Int.random(in: 2...4))  // Random for the fourth level
-        holeCounts.shuffle()  // Randomize which level gets which number
+        // Create array of required hole counts for each level
+        var holeCounts = [2, 2, 3]  // First three levels
+        // Top level (index 3) always has 3-4 holes
+        let topLevelHoles = Int.random(in: 3...4)
+        holeCounts.append(topLevelHoles)
         
         print("Level \(currentLevel) platform heights: \(platformHeights)")
         
@@ -519,7 +531,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 let maxX = sectionStart + sectionWidth * 0.9 - holeWidth  // 10% buffer at end
                 let holeStart = CGFloat.random(in: minX...maxX)
                 
-                    holePositions.append((start: holeStart, width: holeWidth))
+                holePositions.append((start: holeStart, width: holeWidth))
             }
             
             holePositions.sort { $0.start < $1.start }
@@ -697,6 +709,36 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         super.update(currentTime)
         updateScoreLevelLives()
         
+        // Count current balls and check for off-screen balls
+        currentBallCount = basketballs.count
+        
+        // Create array to store balls that need to be removed
+        var ballsToRemove: [SKShapeNode] = []
+        
+        // Check each ball's position
+        for ball in basketballs {
+            // Add some buffer to the screen bounds
+            let buffer: CGFloat = 100  // Allow balls to go slightly off screen before removing
+            
+            // Check if ball is out of bounds
+            if ball.position.y < -buffer ||  // Below screen
+               ball.position.y > size.height + buffer ||  // Above screen
+               ball.position.x < -buffer ||  // Left of screen
+               ball.position.x > size.width + buffer {  // Right of screen
+                ballsToRemove.append(ball)
+            }
+        }
+        
+        // Remove any off-screen balls
+        for ball in ballsToRemove {
+            removeBall(ball)
+        }
+        
+        // If we have less than max balls, try to spawn a new one
+        if currentBallCount < MAX_BALLS {
+            spawnReplacementBall()
+        }
+        
         // Remove any delay/pause in movement
         if isMovingLeft {
             let newX = player.position.x - MOVE_SPEED * CGFloat(1.0/60.0)
@@ -728,10 +770,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                             createVectorExplosion(at: ball.position)
                             score += 10
                             showScorePopup(amount: 10, at: player.position, color: .green)
-                            ball.removeFromParent()
-                            if let index = basketballs.firstIndex(of: ball) {
-                                basketballs.remove(at: index)
-                            }
+                            removeBall(ball)
                         }
                     }
                 }
@@ -791,20 +830,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 platform.userData?["scored"] = false
             }
             
-            // Check if contact is from above
+            // Check if contact is from above - ALWAYS turn green if from above
             if normal.dy < -0.5 && isAbovePlatform {
-                let currentState = platform.userData?["state"] as? String ?? "gold"
-                let isScored = platform.userData?["scored"] as? Bool ?? false
+                // Top collision - always turn green regardless of current state
+                platform.strokeColor = .green
+                platform.fillColor = .clear
+                platform.lineWidth = 2
+                platform.userData?["state"] = "green"
                 
-                if !isScored {
-                    // Top collision - always turn green
-                    platform.strokeColor = .green
-                    platform.fillColor = .clear
-                    platform.lineWidth = 2
-                    platform.userData?["state"] = "green"
+                // Only award points if not previously scored
+                if platform.userData?["scored"] as? Bool != true {
                     platform.userData?["scored"] = true
-                    
-                    // Add score and show popup
                     score += 10
                     showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
                     
@@ -843,10 +879,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 
                 // Remove all affected balls
                 for ball in ballsToRemove {
-                    ball.removeFromParent()
-                    if let index = basketballs.firstIndex(of: ball) {
-                        basketballs.remove(at: index)
-                    }
+                    removeBall(ball)
                 }
             }
         }
@@ -1229,9 +1262,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let headWidth: CGFloat = 25
         let headHeight: CGFloat = 35  // Keeping original height
         
-        // Create bullfrog head shape with more rounded top and wider bottom
+        // Create bullfrog head shape with rounded top and bottom
         let points: [CGPoint] = [
-            CGPoint(x: -headWidth/2, y: -headHeight/3),      // Left bottom
+            CGPoint(x: -headWidth/2, y: -headHeight/3),      // Left bottom curve start
             CGPoint(x: -headWidth/1.8, y: 0),                // Left middle bulge
             CGPoint(x: -headWidth/2, y: headHeight/4),       // Left upper indent
             CGPoint(x: -headWidth/3, y: headHeight/2),       // Left upper curve
@@ -1239,17 +1272,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             CGPoint(x: headWidth/3, y: headHeight/2),        // Right upper curve
             CGPoint(x: headWidth/2, y: headHeight/4),        // Right upper indent
             CGPoint(x: headWidth/1.8, y: 0),                 // Right middle bulge
-            CGPoint(x: headWidth/2, y: -headHeight/3),       // Right bottom
-            CGPoint(x: headWidth/4, y: -headHeight/2),       // Right lower curve
-            CGPoint(x: -headWidth/4, y: -headHeight/2)       // Left lower curve
+            CGPoint(x: headWidth/2, y: -headHeight/3)        // Right bottom curve start
         ]
         
-        // Draw head outline
+        // Draw head outline with curved bottom and top
         headPath.move(to: points[0])
-        for point in points[1...] {
-            headPath.addLine(to: point)
+        
+        // Draw sides up to the left curve point
+        for i in 1...3 {  // Only draw up to left curve point
+            headPath.addLine(to: points[i])
         }
-        headPath.closeSubpath()
+        
+        // Add single curved top line
+        let topControlPoint = CGPoint(x: 0, y: headHeight/1.7 + 2)
+        headPath.addQuadCurve(to: points[5], control: topControlPoint)  // Curve from left to right upper point
+        
+        // Draw remaining sides
+        for i in 6..<points.count {  // Continue from after right curve point
+            headPath.addLine(to: points[i])
+        }
+        
+        // Add curved bottom
+        let bottomControlPoint = CGPoint(x: 0, y: -headHeight/2 - 2)
+        headPath.addQuadCurve(to: points[0], control: bottomControlPoint)
         
         headOutline.path = headPath
         headOutline.strokeColor = .green
@@ -1297,11 +1342,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.addChild(leftEye)
         player.addChild(rightEye)
         
-        // Keep existing smile but adjust position
+        // Keep existing smile but adjust position higher
         let expression = SKShapeNode()
         let expressionPath = CGMutablePath()
         let mouthWidth: CGFloat = headWidth/2
-        let mouthY = -headHeight/4  // Adjusted for bullfrog face
+        let mouthY = -headHeight/4 + 3  // Moved up 3 pixels
         
         expressionPath.move(to: CGPoint(x: -mouthWidth/2, y: mouthY))
         expressionPath.addQuadCurve(
@@ -1314,9 +1359,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         expression.lineWidth = 2
         player.addChild(expression)
         
-        // Physics setup
-        let physicsSize = CGSize(width: headWidth, height: headHeight)
-        player.physicsBody = SKPhysicsBody(rectangleOf: physicsSize, center: CGPoint(x: 0, y: 0))
+        // Physics setup - use the same path as the head outline for physics
+        player.physicsBody = SKPhysicsBody(polygonFrom: headPath)  // Use the same path we drew
         player.physicsBody?.isDynamic = true
         player.physicsBody?.allowsRotation = false
         player.physicsBody?.restitution = 0.0
@@ -1330,7 +1374,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Position player higher above baseline
         player.position = CGPoint(x: size.width * 0.05, 
-                                y: BASELINE_HEIGHT + physicsSize.height)  // Added full height instead of half
+                                y: BASELINE_HEIGHT + playerSize.height)  // Added full height instead of half
         addChild(player)
     }
     
@@ -1363,6 +1407,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         leg.addChild(knee)
         
         // Create calf outline - longer and more angled for frog-like appearance
+        
+        
+        
+        
+        
+        
         let calf = SKShapeNode()
         let calfPath = CGMutablePath()
         let calfLength: CGFloat = 25  // Increased length
@@ -1623,7 +1673,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Create bullfrog head points (same as setup)
         let points: [CGPoint] = [
-            CGPoint(x: -headWidth/2, y: -headHeight/3),      // Left bottom
+            CGPoint(x: -headWidth/2, y: -headHeight/3),      // Left bottom curve start
             CGPoint(x: -headWidth/1.8, y: 0),                // Left middle bulge
             CGPoint(x: -headWidth/2, y: headHeight/4),       // Left upper indent
             CGPoint(x: -headWidth/3, y: headHeight/2),       // Left upper curve
@@ -1631,17 +1681,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             CGPoint(x: headWidth/3, y: headHeight/2),        // Right upper curve
             CGPoint(x: headWidth/2, y: headHeight/4),        // Right upper indent
             CGPoint(x: headWidth/1.8, y: 0),                 // Right middle bulge
-            CGPoint(x: headWidth/2, y: -headHeight/3),       // Right bottom
-            CGPoint(x: headWidth/4, y: -headHeight/2),       // Right lower curve
-            CGPoint(x: -headWidth/4, y: -headHeight/2)       // Left lower curve
+            CGPoint(x: headWidth/2, y: -headHeight/3)        // Right bottom curve start
         ]
         
         // Create individual lines for each segment
-        for i in 0..<points.count {
+        for i in 0..<points.count-1 {
             let line = SKShapeNode()
             let path = CGMutablePath()
             path.move(to: points[i])
-            path.addLine(to: points[(i + 1) % points.count])
+            path.addLine(to: points[i + 1])
             line.path = path
             line.strokeColor = .green
             line.lineWidth = 2
@@ -1649,6 +1697,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             addChild(line)
             headLines.append(line)
         }
+        
+        // Add curved bottom as a single line
+        let bottomLine = SKShapeNode()
+        let bottomPath = CGMutablePath()
+        bottomPath.move(to: points.last!)
+        let bottomControlPoint = CGPoint(x: 0, y: -headHeight/2 - 2)
+        bottomPath.addQuadCurve(to: points[0], control: bottomControlPoint)
+        bottomLine.path = bottomPath
+        bottomLine.strokeColor = .green
+        bottomLine.lineWidth = 2
+        bottomLine.position = player.position
+        addChild(bottomLine)
+        headLines.append(bottomLine)
+        
+        // Add curved top as a single line
+        let topLine = SKShapeNode()
+        let topPath = CGMutablePath()
+        topPath.move(to: points[3])  // Left upper curve
+        let topControlPoint = CGPoint(x: 0, y: headHeight/1.7 + 2)
+        topPath.addQuadCurve(to: points[5], control: topControlPoint)  // To right upper curve
+        topLine.path = topPath
+        topLine.strokeColor = .green
+        topLine.lineWidth = 2
+        topLine.position = player.position
+        addChild(topLine)
+        headLines.append(topLine)
         
         // Create lines for larger eyes
         let eyeSize: CGFloat = 10
@@ -1670,11 +1744,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         addChild(rightEye)
         headLines.append(rightEye)
         
-        // Smile (kept the same)
+        // Smile (moved up 3 pixels)
         let smile = SKShapeNode()
         let smilePath = CGMutablePath()
         let mouthWidth: CGFloat = headWidth/2
-        let mouthY = -headHeight/4
+        let mouthY = -headHeight/4 + 3  // Moved up 3 pixels
         smilePath.move(to: CGPoint(x: -mouthWidth/2, y: mouthY))
         smilePath.addQuadCurve(
             to: CGPoint(x: mouthWidth/2, y: mouthY),
@@ -1793,6 +1867,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             deathZone.physicsBody?.collisionBitMask = 0
             
             addChild(deathZone)
+        }
+    }
+    
+    // Update ball removal to maintain accurate count
+    private func removeBall(_ ball: SKShapeNode) {
+        ball.removeFromParent()
+        if let index = basketballs.firstIndex(of: ball) {
+            basketballs.remove(at: index)
+            currentBallCount -= 1
         }
     }
 }
