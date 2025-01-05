@@ -597,18 +597,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let isRecentlyUsed = recentSpawnLocations.contains { 
             let distance = hypot($0.point.x - potentialPoint.x, 
                                $0.point.y - potentialPoint.y)
-            return distance < 100  // Increased to 100 pixels minimum distance
+            return distance < 50  // Minimum distance between spawn points
         }
         
-        // Also check for existing spawn indicators
-        let hasNearbyIndicator = children.contains { node in
-            guard node.name == "spawnLine" else { return false }
-            let distance = hypot(node.position.x - potentialPoint.x,
-                               node.position.y - potentialPoint.y)
-            return distance < 100  // 100 pixels from other indicators
-        }
-        
-        return (isRecentlyUsed || hasNearbyIndicator) ? nil : potentialPoint
+        return isRecentlyUsed ? nil : potentialPoint
     }
     
     // Helper to create pixel-perfect blocks
@@ -998,15 +990,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             // FIXED: When hitting from above (negative normal.dy), turn GREEN
             if normal.dy > 0  {  // Hit from above
-                platform.strokeColor = .green
-                platform.fillColor = .clear
-                platform.lineWidth = 2
+                            platform.strokeColor = .green
+                    platform.fillColor = .clear
+                    platform.lineWidth = 2
                 platform.userData?["state"] = "green"
                 
                 if platform.userData?["scored"] as? Bool != true {
                     platform.userData?["scored"] = true
                     score += 10
-                    showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
+                            showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
                     checkLevelCompletion()
                 }
                 playSound("platformGreen")
@@ -1016,17 +1008,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             if normal.dy < 0 && currentState == "brown" {  // Hit from below
                 platform.strokeColor = .yellow
                 platform.fillColor = .clear
-                platform.lineWidth = 2
+                            platform.lineWidth = 2
                 platform.userData?["state"] = "yellow"
-                
-                score += 5
+                            
+                            score += 5
                 showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
                 playSound("platformYellow")
-                
-                // Check for balls on this platform
+                            
+                            // Check for balls on this platform
                 var ballsToRemove: [SKShapeNode] = []
-                for ball in basketballs {
-                    if let ballPhysics = ball.physicsBody,
+                            for ball in basketballs {
+                                if let ballPhysics = ball.physicsBody,
                        let platformPhysics = platform.physicsBody {
                         let contactBodies = ballPhysics.allContactedBodies()
                         if contactBodies.contains(platformPhysics) {
