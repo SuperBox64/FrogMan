@@ -130,64 +130,64 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // At top of class with other properties
     private let vectorLetters: [String: [CGPoint]] = [
         "F": [CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 0),
+               CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 0),
               CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)],
         
         "R": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 30, y: 100),
-              CGPoint(x: 30, y: 100), CGPoint(x: 40, y: 80),
-              CGPoint(x: 40, y: 80), CGPoint(x: 40, y: 60),
-              CGPoint(x: 40, y: 60), CGPoint(x: 30, y: 50),
-              CGPoint(x: 30, y: 50), CGPoint(x: 0, y: 50),
+               CGPoint(x: 0, y: 100), CGPoint(x: 30, y: 100),
+               CGPoint(x: 30, y: 100), CGPoint(x: 40, y: 80),
+               CGPoint(x: 40, y: 80), CGPoint(x: 40, y: 60),
+               CGPoint(x: 40, y: 60), CGPoint(x: 30, y: 50),
+               CGPoint(x: 30, y: 50), CGPoint(x: 0, y: 50),
               CGPoint(x: 15, y: 50), CGPoint(x: 40, y: 0)],
         
         "O": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-              CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0),
               CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)],
         
         "G": [CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 0),
-              CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-              CGPoint(x: 40, y: 60), CGPoint(x: 20, y: 60),
+               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 40, y: 60), CGPoint(x: 20, y: 60),
               CGPoint(x: 40, y: 60), CGPoint(x: 40, y: 0)],
         
         "M": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 50),
-              CGPoint(x: 20, y: 50), CGPoint(x: 40, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 50),
+               CGPoint(x: 20, y: 50), CGPoint(x: 40, y: 100),
               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 0)],
         
         "A": [CGPoint(x: 0, y: 0), CGPoint(x: 20, y: 100),
-              CGPoint(x: 20, y: 100), CGPoint(x: 40, y: 0),
+               CGPoint(x: 20, y: 100), CGPoint(x: 40, y: 0),
               CGPoint(x: 10, y: 50), CGPoint(x: 30, y: 50)],
         
         "N": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 0),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 0),
               CGPoint(x: 40, y: 0), CGPoint(x: 40, y: 100)],
-        
+               
         "P": [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
-              CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 50),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 40, y: 100), CGPoint(x: 40, y: 50),
               CGPoint(x: 40, y: 50), CGPoint(x: 0, y: 50)],
-        
+               
         "S": [CGPoint(x: 40, y: 100), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 50),
-              CGPoint(x: 0, y: 50), CGPoint(x: 40, y: 50),
-              CGPoint(x: 40, y: 50), CGPoint(x: 40, y: 0),
+               CGPoint(x: 0, y: 100), CGPoint(x: 0, y: 50),
+               CGPoint(x: 0, y: 50), CGPoint(x: 40, y: 50),
+               CGPoint(x: 40, y: 50), CGPoint(x: 40, y: 0),
               CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0)],
-        
+               
         "C": [CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
-              CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)],
-        
+               
         "E": [CGPoint(x: 40, y: 0), CGPoint(x: 0, y: 0),
-              CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
-              CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
+               CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 100),
+               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100),
               CGPoint(x: 0, y: 50), CGPoint(x: 30, y: 50)],
-        
+               
         "T": [CGPoint(x: 20, y: 0), CGPoint(x: 20, y: 100),
               CGPoint(x: 0, y: 100), CGPoint(x: 40, y: 100)],
-        
+               
         "V": [CGPoint(x: 0, y: 100), CGPoint(x: 20, y: 0),
               CGPoint(x: 20, y: 0), CGPoint(x: 40, y: 100)],
         
@@ -559,8 +559,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                         // Create new ball at the EXACT indicator position
                         let newBasketball = self.createBasketball()
                         newBasketball.position = spawnLine.position
-                        self.addChild(newBasketball)
-                        self.basketballs.append(newBasketball)
+                    self.addChild(newBasketball)
+                    self.basketballs.append(newBasketball)
                         self.currentBallCount += 1
                         
                         // Record spawn location
@@ -682,7 +682,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 let maxX = sectionStart + sectionWidth * 0.9 - holeWidth  // 10% buffer at end
                 let holeStart = CGFloat.random(in: minX...maxX)
                 
-                holePositions.append((start: holeStart, width: holeWidth))
+                    holePositions.append((start: holeStart, width: holeWidth))
             }
             
             holePositions.sort { $0.start < $1.start }
@@ -708,6 +708,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         print("Created \(totalPlatforms) platform sections")
     }
     
+    @discardableResult
     private func createPlatformSection(from startX: CGFloat, to endX: CGFloat, at height: CGFloat, slope: CGFloat) -> SKShapeNode {
         let platform = SKShapeNode()
         let path = CGMutablePath()
@@ -999,8 +1000,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let playerPos = player.position
             let platformPos = platform.position
             
-            // Calculate if player is above the platform
-            let isAbovePlatform = playerPos.y > platformPos.y + platformHeight/2
+            // Super lenient height check
+            let isAbovePlatform = playerPos.y > platformPos.y - platformHeight * 2  // Much more lenient
             
             // Initialize platform metadata if it doesn't exist
             if platform.userData == nil {
@@ -1012,60 +1013,89 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // Get the current state
             let currentState = platform.userData?["state"] as? String ?? "brown"
             
-            // If hitting from above, ALWAYS turn green (regardless of current color)
-            if isAbovePlatform && normal.dy < -0.1 {
-                platform.strokeColor = .green
-                platform.fillColor = .clear
-                platform.lineWidth = 2
-                platform.userData?["state"] = "green"
-                
-                // Only award points if not previously scored
-                if platform.userData?["scored"] as? Bool != true {
-                    platform.userData?["scored"] = true
-                    score += 10
-                    showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
-                    
-                    // Check if level is complete
-                    checkLevelCompletion()
-                }
-                playSound("platformGreen")
-            } 
-            // If hitting from below and platform is brown, turn yellow
-            else if normal.dy > 0.1 {  // Only check normal.dy for bottom hits
-                if currentState == "brown" {
-                    platform.strokeColor = .yellow
+            // Testing mode: Make all platforms green on level 1 except one
+            if isTestingMode && currentLevel == 1 {
+                // Keep one platform brown for testing (the rightmost one)
+                if platform == platforms.last {
+                    // Process normally for the last platform
+                    if isAbovePlatform && normal.dy < 0.8 {  // Extremely lenient
+                            platform.strokeColor = .green
                     platform.fillColor = .clear
                     platform.lineWidth = 2
-                    platform.userData?["state"] = "yellow"
+                        platform.userData?["state"] = "green"
+                
+                        if platform.userData?["scored"] as? Bool != true {
+                            platform.userData?["scored"] = true
+                    score += 10
+                            showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
+                            checkLevelCompletion()
+                        }
+                        playSound("platformGreen")
+                    }
+                } else {
+                    // Make all other platforms green immediately
+                    if currentState != "green" {
+                        platform.strokeColor = .green
+                        platform.fillColor = .clear
+                        platform.lineWidth = 2
+                        platform.userData?["state"] = "green"
+                    platform.userData?["scored"] = true
+                    }
+                }
+            } else {
+                // Normal mode or other levels: Super lenient collision detection
+                if isAbovePlatform && normal.dy < 0.8 {  // Extremely lenient
+                    platform.strokeColor = .green
+                    platform.fillColor = .clear
+                    platform.lineWidth = 2
+                    platform.userData?["state"] = "green"
                     
+                    if platform.userData?["scored"] as? Bool != true {
+                        platform.userData?["scored"] = true
+                        score += 10
+                        showScorePopup(amount: 10, at: contact.contactPoint, color: .green)
+                    checkLevelCompletion()
+                }
+                    playSound("platformGreen")
+                }
+            }
+            
+            // Keep yellow detection the same
+            if normal.dy > 0.1 {  // Keep yellow threshold the same
+                if currentState == "brown" {
+                    platform.strokeColor = .yellow
+                platform.fillColor = .clear
+                            platform.lineWidth = 2
+                    platform.userData?["state"] = "yellow"
+                            
                     // Award 5 points for turning platform yellow
-                    score += 5
+                            score += 5
                     showScorePopup(amount: 5, at: contact.contactPoint, color: .yellow)
                     playSound("platformYellow")
-                    
-                    // Check for balls on this platform
-                    var ballsToRemove: [SKShapeNode] = []
-                    for ball in basketballs {
-                        if let ballPhysics = ball.physicsBody,
-                           let platformPhysics = platform.physicsBody {
-                            let contactBodies = ballPhysics.allContactedBodies()
-                            if contactBodies.contains(platformPhysics) {
-                                // Create implosion effect
-                                createVectorImplosion(at: ball.position)
-                                
-                                // Award 7 points for each ball
-                                score += 7
-                                showScorePopup(amount: 7, at: ball.position, color: .orange)
-                                
-                                ballsToRemove.append(ball)
-                            }
+                            
+                            // Check for balls on this platform
+                var ballsToRemove: [SKShapeNode] = []
+                            for ball in basketballs {
+                                if let ballPhysics = ball.physicsBody,
+                       let platformPhysics = platform.physicsBody {
+                        let contactBodies = ballPhysics.allContactedBodies()
+                        if contactBodies.contains(platformPhysics) {
+                            // Create implosion effect
+                            createVectorImplosion(at: ball.position)
+                            
+                            // Award 7 points for each ball
+                            score += 7
+                            showScorePopup(amount: 7, at: ball.position, color: .orange)
+                            
+                            ballsToRemove.append(ball)
                         }
                     }
-                    
-                    // Remove all affected balls
-                    for ball in ballsToRemove {
+                }
+                
+                // Remove all affected balls
+                for ball in ballsToRemove {
                         removeBall(ball)
-                    }
+                                    }
                 }
             }
         }
@@ -1196,19 +1226,77 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 removeBall(ballNode)
             }
         }
+
+        // Check for ball hitting baseline
+        if collision == (PhysicsCategory.baseline | PhysicsCategory.obstacle) {
+            let ball = (contact.bodyA.categoryBitMask == PhysicsCategory.obstacle) ? contact.bodyA.node : contact.bodyB.node
+            if let ballNode = ball as? SKShapeNode {
+                // Remove all actions
+                ballNode.removeAllActions()
+                createBaselineFireworks(at: ballNode.position)
+                removeBall(ballNode)
+            }
+        }
+    }
+
+    private func createBaselineFireworks(at position: CGPoint) {
+        let numParticles = 30
+        let colors: [NSColor] = [.yellow, .orange]
+        
+        // Create initial explosion
+        for _ in 0..<numParticles {
+            let spark = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: .zero)
+            path.addLine(to: CGPoint(x: 2, y: 0))  // Small line for spark
+            
+            spark.path = path
+            spark.strokeColor = colors.randomElement() ?? .yellow
+            spark.position = position
+            spark.lineWidth = 2
+            addChild(spark)
+            
+            // Random angle and distance
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            let distance = CGFloat.random(in: 50...150)
+            
+            // Create curved path for natural firework effect
+            let duration = TimeInterval.random(in: 0.3...0.8)
+            let moveAction = SKAction.customAction(withDuration: duration) { node, time in
+                let progress = time / CGFloat(duration)
+                let currentDistance = distance * progress
+                let yOffset = 100 * sin(progress * .pi)  // Arcing motion
+                
+                node.position = CGPoint(
+                    x: position.x + cos(angle) * currentDistance,
+                    y: position.y + sin(angle) * currentDistance + yOffset
+                )
+            }
+            
+            let fadeAction = SKAction.sequence([
+                SKAction.wait(forDuration: duration * 0.7),
+                SKAction.fadeOut(withDuration: duration * 0.3)
+            ])
+            
+            let rotateAction = SKAction.rotate(byAngle: CGFloat.random(in: -2 * .pi...2 * .pi), duration: duration)
+            let group = SKAction.group([moveAction, fadeAction, rotateAction])
+            let remove = SKAction.removeFromParent()
+            
+            spark.run(SKAction.sequence([group, remove]))
+        }
     }
     
     private func gameOver() {
         stopBackgroundMusic()
         
-        for i in children.indices {
-            let node = children[i]
-            node.alpha = 0.5
-        }
-        
         playSound("gameOver")
         // Remove all existing balls and their spawn indicators
         children.forEach { node in
+            if node.name == "player" {
+                node.alpha = 0.5
+            } else {
+                node.alpha = 1.0
+            }
             if node.name == "ball" || node.name == "spawnLine" {
                 node.removeFromParent()
             }
@@ -1414,12 +1502,35 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add new function for level progression
     private func startNextLevel() {
-        
-        for i in children.indices {
-            let node = children[i]
-            node.alpha = 0.5
+        // Remove ALL existing nodes except score labels and player
+        children.forEach { node in
+            if node != scoreLabel && 
+               node != livesLabel && 
+               node != levelLabel &&
+               node != player {  // Preserve player
+                node.removeAllActions()
+                node.removeFromParent()
+            }
         }
         
+        // Clear all arrays and tracking
+        platforms.removeAll()
+        basketballs.removeAll()
+        scoredPlatforms.removeAll()
+        recentSpawnLocations.removeAll()
+        ballCreationTimes.removeAll()
+        
+        // Reset counters and state
+        currentBallCount = 0
+        totalPlatforms = 0
+        hasExtraLifeForLevel = false
+        isSpawningBall = false
+        baselineScored = false
+        
+        // Increment level
+        currentLevel += 1
+        
+        // Show level complete message
         playSound("levelComplete")
         let levelComplete = SKLabelNode(text: "Level Complete!")
         levelComplete.position = CGPoint(x: size.width/2, y: size.height/2)
@@ -1432,7 +1543,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let wait = SKAction.wait(forDuration: 1.0)
         let fadeOut = SKAction.fadeOut(withDuration: 0.5)
         let remove = SKAction.removeFromParent()
-        levelComplete.run(SKAction.sequence([fadeIn, wait, fadeOut, remove]))
+        let setupNew = SKAction.run { [weak self] in
+            self?.setupLevel()  // Setup new level after animation
+        }
+        
+        levelComplete.run(SKAction.sequence([fadeIn, wait, fadeOut, remove, setupNew]))
     }
     
     private func handleLifeLost() {
@@ -1524,7 +1639,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private func setupPlayer() {
         // Create main container node
         player = SKShapeNode()
-        
+        player.name = "player"
         // Vector-style bullfrog head outline
         let headOutline = SKShapeNode()
         let headPath = CGMutablePath()
@@ -1647,6 +1762,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         addChild(player)
     }
     
+    @discardableResult
     private func createLShapedLeg(pixelSize: CGFloat, isLeft: Bool) -> SKShapeNode {
         let leg = SKShapeNode()
         leg.name = isLeft ? "leftLeg" : "rightLeg"
@@ -1818,7 +1934,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     let hue = (CGFloat(index) + CGFloat(i) / CGFloat(digitPoints[digit].count)) / CGFloat(digits.count)
                     line.strokeColor = NSColor(hue: hue, saturation: 1.0, brightness: 1.0, alpha: 1.0)
                 } else {
-                    line.strokeColor = .green
+                line.strokeColor = .green
                 }
                 
                 line.lineWidth = 2
@@ -2075,25 +2191,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 
                 // Draw lines for each pair of points
                 for i in stride(from: 0, to: points.count, by: 2) {
-                    let line = SKShapeNode()
-                    let path = CGMutablePath()
-                    
-                    let startPoint = CGPoint(
+                        let line = SKShapeNode()
+                        let path = CGMutablePath()
+                        
+                        let startPoint = CGPoint(
                         x: points[i].x * scale,
                         y: points[i].y * scale
-                    )
-                    let endPoint = CGPoint(
+                        )
+                        let endPoint = CGPoint(
                         x: points[i + 1].x * scale,
                         y: points[i + 1].y * scale
-                    )
-                    
-                    path.move(to: startPoint)
-                    path.addLine(to: endPoint)
-                    
-                    line.path = path
-                    line.strokeColor = color
-                    line.lineWidth = 2
-                    letterNode.addChild(line)
+                        )
+                        
+                        path.move(to: startPoint)
+                        path.addLine(to: endPoint)
+                        
+                        line.path = path
+                        line.strokeColor = color
+                        line.lineWidth = 2
+                        letterNode.addChild(line)
                 }
                 
                 letterNode.position = CGPoint(x: offsetX, y: 0)
@@ -2128,6 +2244,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         baseline.path = baselinePath
         baseline.strokeColor = .green
         baseline.lineWidth = baselineLineWidth
+        baseline.physicsBody = SKPhysicsBody(edgeFrom: CGPoint(x: 0, y: 1), to: CGPoint(x: size.width, y: 1))
+        baseline.physicsBody?.categoryBitMask = PhysicsCategory.baseline
+        baseline.physicsBody?.contactTestBitMask = PhysicsCategory.obstacle
+        baseline.physicsBody?.collisionBitMask = 0
         addChild(baseline)
         
         // Create 3 evenly spaced red death zones
@@ -2164,10 +2284,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ball.removeAllActions()
         ball.children.forEach { child in
             child.removeAllActions()
-            if let container = child as? SKNode {
-                container.children.forEach { grandChild in
-                    grandChild.removeAllActions()
-                }
+            child.children.forEach { grandChild in
+                grandChild.removeAllActions()
             }
         }
         
@@ -2292,57 +2410,182 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add new function for rainbow fireworks
     private func createRainbowFireworks(at position: CGPoint) {
-        let numParticles = 60  // More particles for denser effect
-        let minRadius: CGFloat = 30  // Shorter minimum distance
-        let maxRadius: CGFloat = 80  // Shorter maximum distance for tighter effect
+        let numParticles = 80  // Increased number of particles
+        let minRadius: CGFloat = 50  // Increased minimum distance
+        let maxRadius: CGFloat = 200  // Increased maximum distance
         
-        for i in 0..<numParticles {
-            // Create multiple lines with random angles and lengths
-            let randomAngle = CGFloat.random(in: 0...(2 * .pi))
-            let randomRadius = CGFloat.random(in: minRadius...maxRadius)
+        // Create multiple bursts with different delays
+        for burstIndex in 0...2 {  // Create 3 bursts
+            let burstDelay = Double(burstIndex) * 0.1  // Stagger the bursts
             
-            // Create sparkler line
-            let line = SKShapeNode()
-            let path = CGMutablePath()
-            
-            // Start at center
-            path.move(to: .zero)
-            
-            // End point with slight variation for natural look
-            let endPoint = CGPoint(
-                x: cos(randomAngle) * randomRadius + CGFloat.random(in: -5...5),
-                y: sin(randomAngle) * randomRadius + CGFloat.random(in: -5...5)
-            )
-            path.addLine(to: endPoint)
-            
-            line.path = path
-            line.strokeColor = NSColor(
-                hue: CGFloat.random(in: 0...1),  // Random rainbow colors
-                saturation: 1.0,
-                brightness: 1.0,
-                alpha: 1.0
-            )
-            line.lineWidth = CGFloat.random(in: 1...2)  // Thinner lines for sparkler effect
-            line.position = position
-            addChild(line)
-            
-            // Faster animation for sparkler feel
-            let duration = CGFloat.random(in: 0.2...0.4)  // Faster duration
-            let moveAction = SKAction.scale(by: CGFloat.random(in: 1.1...1.3), duration: duration)
-            let fadeAction = SKAction.fadeOut(withDuration: duration)
-            
-            // Add slight rotation for sparkle effect
-            let rotateAction = SKAction.rotate(byAngle: CGFloat.random(in: -0.3...0.3), duration: duration)
-            
-            let group = SKAction.group([moveAction, fadeAction, rotateAction])
-            let remove = SKAction.removeFromParent()
-            
-            // Minimal random delay for more instant effect
-            let delay = SKAction.wait(forDuration: Double.random(in: 0...0.05))
-            line.run(SKAction.sequence([delay, group, remove]))
+            for i in 0..<numParticles {
+                // Create longer spark line
+                let spark = SKShapeNode()
+                let sparkPath = CGMutablePath()
+                sparkPath.move(to: .zero)
+                sparkPath.addLine(to: CGPoint(x: CGFloat.random(in: 4...8), y: 0))  // Longer spark
+                
+                spark.path = sparkPath
+                // Rainbow color based on angle
+                let hue = CGFloat(i) / CGFloat(numParticles)
+                spark.strokeColor = NSColor(hue: hue, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+                spark.position = position
+                spark.lineWidth = CGFloat.random(in: 1...3)  // Varied line width
+                spark.alpha = 0.8
+                addChild(spark)
+                
+                let angle = CGFloat(i) * 2 * .pi / CGFloat(numParticles) + 
+                           CGFloat.random(in: -0.2...0.2)  // Slight angle variation
+                let distance = CGFloat.random(in: minRadius...maxRadius)
+                
+                let duration = TimeInterval.random(in: 0.6...1.2)  // Longer duration
+                
+                // Create more natural firework motion
+                let moveAction = SKAction.customAction(withDuration: duration) { node, time in
+                    let progress = time / CGFloat(duration)
+                    let currentDistance = distance * progress
+                    
+                    // Add gravity effect
+                    let gravity: CGFloat = -50.0
+                    let yOffset = gravity * pow(progress, 2)
+                    
+                    // Add slight wave motion
+                    let wave = sin(progress * 4 * .pi) * 5 * (1 - progress)
+                    
+                    node.position = CGPoint(
+                        x: position.x + cos(angle) * currentDistance + wave,
+                        y: position.y + sin(angle) * currentDistance + yOffset
+                    )
+                    
+                    // Rotate spark to follow its path
+                    let rotation = atan2(sin(angle) + gravity * progress, cos(angle))
+                    node.zRotation = rotation
+                }
+                
+                // Create trail effect
+                let trailAction = SKAction.customAction(withDuration: duration) { node, time in
+                    if time > 0.1 {  // Start trail after initial movement
+                        let trail = SKShapeNode(path: sparkPath)
+                        trail.strokeColor = spark.strokeColor.withAlphaComponent(0.3)
+                        trail.lineWidth = spark.lineWidth * 0.5
+                        trail.position = node.position
+                        trail.zRotation = node.zRotation
+                        self.addChild(trail)
+                        
+                        let fadeOut = SKAction.sequence([
+                            SKAction.fadeOut(withDuration: 0.1),
+                            SKAction.removeFromParent()
+                        ])
+                        trail.run(fadeOut)
+                    }
+                }
+                
+                let fadeAction = SKAction.sequence([
+                    SKAction.wait(forDuration: duration * 0.7),
+                    SKAction.fadeOut(withDuration: duration * 0.3)
+                ])
+                
+                let group = SKAction.group([moveAction, fadeAction, trailAction])
+                let remove = SKAction.removeFromParent()
+                
+                // Add delay for burst effect
+                let delay = SKAction.wait(forDuration: burstDelay)
+                spark.run(SKAction.sequence([delay, group, remove]))
+            }
         }
         
-        // Add a smaller, brighter flash at the center
+        // Add central flash
+        let flash = SKShapeNode(circleOfRadius: 15)
+        flash.fillColor = .white
+        flash.strokeColor = .clear
+        flash.position = position
+        flash.alpha = 0.9
+        addChild(flash)
+        
+        let flashFade = SKAction.fadeOut(withDuration: 0.2)
+        let removeFlash = SKAction.removeFromParent()
+        flash.run(SKAction.sequence([flashFade, removeFlash]))
+    }
+    
+    // Add new function for shimmer effect
+    private func createShimmerEffect(at position: CGPoint) {
+        let numParticles = 40  // Increased particles
+        let colors: [NSColor] = (0..<8).map { i in
+            NSColor(hue: CGFloat(i) / 8.0, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+        }
+        
+        // Create multiple pops with different delays
+        for popIndex in 0...2 {  // Create 3 pops
+            let popDelay = Double(popIndex) * 0.1
+            
+            for _ in 0..<numParticles {
+                let spark = SKShapeNode()
+                let sparkPath = CGMutablePath()
+                sparkPath.move(to: .zero)
+                sparkPath.addLine(to: CGPoint(x: CGFloat.random(in: 3...6), y: 0))  // Spark line
+                
+                spark.path = sparkPath
+                spark.strokeColor = colors.randomElement() ?? .white
+                spark.position = position
+                spark.lineWidth = CGFloat.random(in: 1...2)
+                spark.alpha = 0.8
+                addChild(spark)
+                
+                // Random angle and distance
+                let angle = CGFloat.random(in: 0...(2 * .pi))
+                let distance = CGFloat.random(in: 30...80)
+                
+                let duration = TimeInterval.random(in: 0.3...0.6)
+                
+                // Create popping motion
+                let moveAction = SKAction.customAction(withDuration: duration) { node, time in
+                    let progress = time / CGFloat(duration)
+                    let currentDistance = distance * progress
+                    
+                    // Add arcing motion
+                    let yOffset = 50 * sin(progress * .pi)
+                    
+                    node.position = CGPoint(
+                        x: position.x + cos(angle) * currentDistance,
+                        y: position.y + sin(angle) * currentDistance + yOffset
+                    )
+                    
+                    // Rotate spark
+                    node.zRotation = angle + (.pi/2) * progress
+                }
+                
+                // Create trail effect
+                let trailAction = SKAction.customAction(withDuration: duration) { node, time in
+                    if time > 0.05 {  // Quick trail start
+                        let trail = SKShapeNode(path: sparkPath)
+                        trail.strokeColor = spark.strokeColor.withAlphaComponent(0.2)
+                        trail.lineWidth = spark.lineWidth * 0.5
+                        trail.position = node.position
+                        trail.zRotation = node.zRotation
+                        self.addChild(trail)
+                        
+                        let fadeOut = SKAction.sequence([
+                            SKAction.fadeOut(withDuration: 0.1),
+                            SKAction.removeFromParent()
+                        ])
+                        trail.run(fadeOut)
+                    }
+                }
+                
+                let fadeAction = SKAction.sequence([
+                    SKAction.wait(forDuration: duration * 0.6),
+                    SKAction.fadeOut(withDuration: duration * 0.4)
+                ])
+                
+                let group = SKAction.group([moveAction, fadeAction, trailAction])
+                let remove = SKAction.removeFromParent()
+                
+                let delay = SKAction.wait(forDuration: popDelay)
+                spark.run(SKAction.sequence([delay, group, remove]))
+            }
+        }
+        
+        // Add central flash
         let flash = SKShapeNode(circleOfRadius: 10)
         flash.fillColor = .white
         flash.strokeColor = .clear
@@ -2350,62 +2593,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         flash.alpha = 0.9
         addChild(flash)
         
-        let flashFade = SKAction.fadeOut(withDuration: 0.1)
+        let flashFade = SKAction.fadeOut(withDuration: 0.2)
         let removeFlash = SKAction.removeFromParent()
         flash.run(SKAction.sequence([flashFade, removeFlash]))
-    }
-    
-    // Add new function for shimmer effect
-    private func createShimmerEffect(at position: CGPoint) {
-        let numParticles = 12
-        let radius: CGFloat = 30
-        
-        // Main shimmer lines
-        for i in 0..<numParticles {
-            let angle = (CGFloat(i) / CGFloat(numParticles)) * CGFloat.pi * 2
-            let startPoint = CGPoint(
-                x: position.x + cos(angle) * radius,
-                y: position.y + sin(angle) * radius
-            )
-            
-            // Create shimmering line
-            let line = SKShapeNode()
-            let path = CGMutablePath()
-            path.move(to: startPoint)
-            
-            // Create a curved path outward
-            let endPoint = CGPoint(
-                x: position.x + cos(angle) * radius * 2,
-                y: position.y + sin(angle) * radius * 2
-            )
-            let controlPoint = CGPoint(
-                x: position.x + cos(angle + 0.5) * radius * 1.5,
-                y: position.y + sin(angle + 0.5) * radius * 1.5
-            )
-            
-            path.addQuadCurve(to: endPoint, control: controlPoint)
-            
-            line.path = path
-            line.strokeColor = NSColor(
-                hue: CGFloat(i) / CGFloat(numParticles),
-                saturation: 1.0,
-                brightness: 1.0,
-                alpha: 1.0
-            )
-            line.lineWidth = 2
-            addChild(line)
-            
-            // Animate with fade and move
-            let fadeAction = SKAction.fadeOut(withDuration: 0.3)
-            let moveAction = SKAction.moveBy(x: cos(angle) * 20, y: sin(angle) * 20, duration: 0.3)
-            let group = SKAction.group([fadeAction, moveAction])
-            let remove = SKAction.removeFromParent()
-            
-            line.run(SKAction.sequence([group, remove]))
-            
-            // Add crackling particles at the end of each line
-            createCrackles(at: endPoint, angle: angle)
-        }
     }
     
     private func createCrackles(at position: CGPoint, angle: CGFloat) {
@@ -2423,7 +2613,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             var currentPoint = CGPoint.zero
             let numZigs = 3
             
-            for i in 0..<numZigs {
+            for _ in 0..<numZigs {
                 let zigAngle = angle + CGFloat.random(in: -0.5...0.5)
                 let zagAngle = angle + CGFloat.random(in: -0.5...0.5)
                 
@@ -2468,5 +2658,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             crackle.run(SKAction.sequence([delay, group, remove]))
         }
     }
+    
+    // Add at top with other properties
+    private var isTestingMode = true  // Set to false to return to normal mode
 }
 
