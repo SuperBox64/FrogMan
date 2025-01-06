@@ -9,6 +9,13 @@ import SpriteKit
 import GameplayKit
 import AVFoundation
 
+// Add at top of file
+enum GameState {
+    case title
+    case playing
+    case gameOver
+}
+
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Physics categories
@@ -1191,13 +1198,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         stopBackgroundMusic()
         
         playSound("gameOver")
+        // Set alpha of all existing nodes to 0.25 except game over text
+        children.forEach { node in
+            if node.name != "gameOverScreen" {
+                node.alpha = 0.25
+            }
+        }
+        
         // Remove all existing balls and their spawn indicators
         children.forEach { node in
-            if node.name == "player" {
-                node.alpha = 0.5
-            } else {
-                node.alpha = 1.0
-            }
             if node.name == "ball" || node.name == "spawnLine" {
                 node.removeFromParent()
             }
@@ -1230,10 +1239,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Reset game state but keep scene
         gameStarted = false
-        lives = 5
+    }
+    
+    private func startNewGame() {
+        // Reset all nodes to full alpha
+        children.forEach { node in
+            node.alpha = 1.0
+        }
+        
+        // Reset game state
         score = 0
         currentLevel = 1
+        lives = 3
         
+        // Remove all existing nodes except score labels
+        removeAllChildren()
+        setupScore()
+        
+        // Setup initial game elements
+        setupLevel()
     }
     
     // Add new function to create a single basketball
@@ -2497,5 +2521,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Add at top with other properties
     private var isTestingMode = true  // Set to false to return to normal mode
+    
+    func handleGameOver() {
+        gameState = .gameOver
+        playSound("game_over")
+        
+        // Show game over text
+        let gameOverLabel = SKLabelNode(text: "Game Over")
+        gameOverLabel.fontName = "Helvetica-Bold"
+        gameOverLabel.fontSize = 48
+        gameOverLabel.position = CGPoint(x: size.width/2, y: size.height/2)
+        gameOverLabel.zPosition = 100
+        addChild(gameOverLabel)
+        
+        // Show "Press Space to Start" text
+        let pressSpaceLabel = SKLabelNode(text: "Press Space to Start")
+        pressSpaceLabel.fontName = "Helvetica"
+        pressSpaceLabel.fontSize = 24
+        pressSpaceLabel.position = CGPoint(x: size.width/2, y: size.height/2 - 40)
+        pressSpaceLabel.zPosition = 100
+        addChild(pressSpaceLabel)
+    }
+    
+    // Add with other properties
+    private var gameState: GameState = .title
 }
 
